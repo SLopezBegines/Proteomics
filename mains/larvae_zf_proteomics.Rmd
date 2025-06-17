@@ -1,0 +1,256 @@
+
+
+# 1. Importing data
+
+## Loading functions
+```{r}
+gc()
+rm(list=ls())
+output_path <- "./output/Larvae/CLN3/"
+output_path <- "./output/Larvae/CLN3/Outliers_removed/"
+output_path <- "./output/Larvae/CLN12/"
+output_path <- "./output/Larvae/CLN12/outlier_removed/"
+
+```
+
+
+```{r}
+source("../code/global_variables.R")
+source("../code/01_loading_data.R")
+source("../code/03_cleaning_data.R")
+source("../code/04_data_analysis.R")
+```
+
+
+```{r}
+# Select input data file
+prot_data <- readxl::read_xlsx(path = "../rawdata/Larvae_LFQ_CLN3.xlsx")
+prot_data <- readxl::read_xlsx(path = "../rawdata/Larvae_LFQ_CLN12.xlsx")
+loading_data(prot_data)
+
+```
+# 2. Experiment Design
+## CLN3 Experiment design
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+
+#comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT", "CLN12_vs_WT", "CLN3_Lux1_vs_CLN3_Lux2", "CLN3_Lux1_vs_CLN12", "CLN3_Lux2_vs_CLN12")
+comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT")
+#comparisons <- c("CLN12_vs_WT")
+#comparisons <- c("CLN3_Lux1_vs_WT")
+
+label <-    c("lfq_wt_1", "lfq_wt_2", "lfq_wt_3", "lfq_wt_4",
+              "lfq_cln3_lux1_1", "lfq_cln3_lux1_2", "lfq_cln3_lux1_3", "lfq_cln3_lux1_4",
+              "lfq_cln3_lux2_1", "lfq_cln3_lux2_2", "lfq_cln3_lux2_3", "lfq_cln3_lux2_4")
+
+label_columns <-  label
+
+columns_to_rename <- c("WT_1","WT_2","WT_3", "WT_4",
+                       "CLN3_Lux1_1", "CLN3_Lux1_2", "CLN3_Lux1_3", "CLN3_Lux1_4",
+                       "CLN3_Lux2_1", "CLN3_Lux2_2", "CLN3_Lux2_3", "CLN3_Lux2_4")
+
+
+condition <- as.factor(c("WT","WT","WT","WT",
+                         "CLN3_Lux1","CLN3_Lux1","CLN3_Lux1","CLN3_Lux1",
+                         "CLN3_Lux2","CLN3_Lux2","CLN3_Lux2","CLN3_Lux2"))
+replicate <- c(1,2,3,4,
+               1,2,3,4,
+               1,2,3,4)
+
+experiment <- rep("Larvae",length(replicate))
+Exp_design <- cbind.data.frame(label,condition,replicate, columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+### Outliers removed
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+
+#comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT", "CLN12_vs_WT", "CLN3_Lux1_vs_CLN3_Lux2", "CLN3_Lux1_vs_CLN12", "CLN3_Lux2_vs_CLN12")
+comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT")
+#comparisons <- c("CLN12_vs_WT")
+#comparisons <- c("CLN3_Lux1_vs_WT")
+
+label <-    c("lfq_wt_2", "lfq_wt_3", "lfq_wt_4",
+              "lfq_cln3_lux1_2","lfq_cln3_lux1_3", "lfq_cln3_lux1_4",
+              "lfq_cln3_lux2_1","lfq_cln3_lux2_2", "lfq_cln3_lux2_3")
+
+label_columns <-  label
+
+columns_to_rename <- c("WT_2","WT_3", "WT_4",
+                        "CLN3_Lux1_2", "CLN3_Lux1_3","CLN3_Lux1_4",
+                       "CLN3_Lux2_1", "CLN3_Lux2_2", "CLN3_Lux2_3")
+
+
+condition <- as.factor(c("WT","WT","WT",
+                         "CLN3_Lux1","CLN3_Lux1","CLN3_Lux1",
+                         "CLN3_Lux2","CLN3_Lux2","CLN3_Lux2"))
+replicate <- c(2,3,4,
+               2,3,4,
+               1,2,3)
+
+experiment <- c("Larvae","Larvae","Larvae",
+                "Larvae","Larvae","Larvae",
+                "Larvae","Larvae","Larvae")
+
+Exp_design <- cbind.data.frame(label,condition,replicate, columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+
+
+
+## CLN12 Experiment design
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+comparisons <- c("CLN12_vs_WT")
+
+label <-    c("lfq_cln12_wt_1", "lfq_cln12_wt_2", "lfq_cln12_wt_3", "lfq_cln12_wt_4",
+              "lfq_cln12_ko_1", "lfq_cln12_ko_2", "lfq_cln12_ko_3", "lfq_cln12_ko_4")
+
+label_columns <-  label
+
+columns_to_rename <- c("WT_1", "WT_2","WT_3", "WT_4",
+                       "CLN12_1","CLN12_2", "CLN12_3", "CLN12_4")
+
+
+condition <- as.factor(c("WT","WT","WT","WT",
+                          "CLN12","CLN12","CLN12","CLN12"))
+replicate <- c(1,2,3,4,
+               1,2,3,4)
+
+experiment <- rep("Larvae",8)
+
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+### Outliers removed
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+#output_path <- "./output/Larvae/CLN12/outlier_removed/"
+source("../code/global_variables.R")
+
+comparisons <- c("CLN12_vs_WT")
+
+label <-    c("lfq_cln12_wt_2", "lfq_cln12_wt_3", "lfq_cln12_wt_4",
+              "lfq_cln12_ko_2", "lfq_cln12_ko_3",  "lfq_cln12_ko_4")
+
+label_columns <-  label
+
+columns_to_rename <- c("WT_2","WT_3", "WT_4",
+                       "CLN12_2", "CLN12_3", "CLN12_4")
+
+
+condition <- as.factor(c("WT","WT","WT",
+                         "CLN12","CLN12","CLN12"))
+replicate <- c(2,3,4,
+               2,3,4)
+
+experiment <- c("Larvae","Larvae","Larvae",
+                "Larvae","Larvae","Larvae")
+
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+
+# 3. Data Cleaning
+
+```{r}
+source("../code/03_cleaning_data.R")
+data_cleaning(prot_data, Exp_design, comparisons, output_path, mnar_var = "MinProb")
+```
+
+
+# 4. Data Analysis
+```{r}
+# Load desired imputation file
+data_analysis(mixed_imputation, Exp_design, comparisons, output_path)
+```
+
+
+# 5. Plots
+```{r}
+#Change to 1 to print Barplots
+print_barplots <- 0
+
+source("../code/05_Plots.R")
+
+```
+
+# 6. GO
+```{r}
+#Use upregulated and downregulated genes independently
+independent_UPDOWN <- 1
+#Select type of ontology
+ont <- "ALL"  # Can be "ALL", "BP", "CC", or "MF"
+source("../code/06_GO.R")
+
+```
+
+# 7. Strings
+```{r}
+independent_UPDOWN <- 1
+source("../code/07_Strings.R")
+```
+
+
+# 8. gseGO & KEGG
+```{r}
+#Use upregulated and downregulated genes independently
+independent_UPDOWN <- 1
+#Select type of ontology
+ont <- "ALL"  # Can be "ALL", "BP", "CC", or "MF"
+source("../code/08_gseGO.R")
+
+source("../code/09_gseKEGG.R")
+
+```
+
+# 10. RBioAPI String and Panther
+```{r}
+source("../code/10_RBioApi_string.R") 
+source("../code/11_RBioApi_panther.R")
+```
+
+# 11. Adj
+
+```{r}
+source("../code/13_GO_padj.R")
+
+source("../code/15_gseGO_adj.R")
+source("../code/13_gseKEGG_padj.R")
+
+
+```

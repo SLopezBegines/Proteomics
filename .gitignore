@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+.DS_Store
+*.Rproj
+input_data/
+mains/output/
+mains/output/figures/
+renv/
+renv.lock
+.Rprofile
+rawdata/

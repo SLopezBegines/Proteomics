@@ -1,0 +1,227 @@
+
+
+# 1. Importing data
+
+## Loading functions
+```{r}
+rm(list=ls())
+gc()
+```
+
+
+```{r}
+output_path <- "./output/LysoIP/20250311/"
+output_path <- "./output/LysoIP/20250305/outliers_removed/"
+output_path <- "./output/LysoIP/20250311/HeLa_removed/"
+```
+
+
+```{r}
+source("../code/global_variables.R")
+source("../code/00_packages.R")
+source("../code/01_loading_data.R")
+source("../code/03_cleaning_data.R")
+source("../code/04_data_analysis.R")
+
+kegg_organism = "hsa"#dre for Danio rerio, hsa for Homo sapiens, mmu for Mus musculus
+species <- 9606 #9606 for Human, 10090 for mouse, 7955 for zebrafish
+organism <- "org.Hs.eg.db" #"org.Hs.eg.db", "org.Dr.eg.db", "org.Mm.eg.db"
+keyType <- "UNIPROT"
+KEGGkeyType <- "uniprot"
+image_number <- 1
+```
+
+
+```{r}
+#import data
+prot_data <- readxl::read_xlsx(path = "../rawdata/Liso_IP_Plain_Multi14samples.xlsx")
+loading_data(prot_data)
+```
+
+
+
+# 2. Experiment desing
+
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+comparisons <- c("WT_vs_HeLa", "KO_vs_HeLa", "KO_vs_WT")
+
+label <- c("lfq_HeLa_1", "lfq_HeLa_2","lfq_HeLa_4","lfq_HeLa_5",
+            "lfq_WT_1","lfq_WT_2","lfq_WT_3","lfq_WT_4","lfq_WT_5",
+            "lfq_KO_1","lfq_KO_2","lfq_KO_3","lfq_KO_4","lfq_KO_5")
+
+
+
+columns_to_rename <- c("HeLa_1", "HeLa_2","HeLa_4","HeLa_5",
+                       "WT_1","WT_2","WT_3","WT_4","WT_5",
+                       "KO_1","KO_2","KO_3","KO_4","KO_5"
+                       )
+
+label_columns <-  label
+
+
+condition <- as.factor(c("HeLa","HeLa","HeLa","HeLa",
+                         "WT","WT","WT","WT","WT",
+                         "KO","KO","KO","KO","KO"))
+
+replicate <- c(1,2,4,5,
+               1,2,3,4,5,
+               1,2,3,4,5)
+
+experiment <- rep("LysoIP", 14)
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+## Outliers removed
+
+```{r eval=FALSE, include=FALSE}
+# Experiment design ####
+# You just need modify script in Experiment heading
+comparisons <- c("WT_vs_HeLa", "KO_vs_HeLa", "KO_vs_WT")
+
+label <- c("lfq_HeLa_1", "lfq_HeLa_2","lfq_HeLa_4","lfq_HeLa_5",
+            "lfq_WT_1","lfq_WT_2","lfq_WT_4","lfq_WT_5",
+            "lfq_KO_1","lfq_KO_2","lfq_KO_4","lfq_KO_5")
+
+
+
+columns_to_rename <- c("HeLa_1", "HeLa_2","HeLa_4","HeLa_5",
+                       "WT_1","WT_2","WT_4","WT_5",
+                       "KO_1","KO_2","KO_4","KO_5"
+                       )
+
+label_columns <-  label
+
+
+condition <- as.factor(c("HeLa","HeLa","HeLa","HeLa",
+                         "WT","WT","WT","WT",
+                         "KO","KO","KO","KO"))
+
+replicate <- c(1,2,4,5,
+               1,2,4,5,
+               1,2,4,5)
+
+experiment <- rep("LysoIP", 12)
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+# Experiment design ####
+# You just need modify script in Experiment heading
+```
+## HeLa removed
+
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+comparisons <- c("KO_vs_WT")
+
+label <- c("lfq_WT_1","lfq_WT_2","lfq_WT_3","lfq_WT_4","lfq_WT_5",
+            "lfq_KO_1","lfq_KO_2","lfq_KO_3","lfq_KO_4","lfq_KO_5")
+
+
+
+columns_to_rename <- c("WT_1","WT_2","WT_3","WT_4","WT_5",
+                       "KO_1","KO_2","KO_3","KO_4","KO_5"
+                       )
+
+label_columns <-  label
+
+
+condition <- as.factor(c("WT","WT","WT","WT","WT",
+                         "KO","KO","KO","KO","KO"))
+
+replicate <- c(1,2,3,4,5,
+               1,2,3,4,5)
+
+experiment <- rep("LysoIP", 10)
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+# Experiment design ####
+# You just need modify script in Experiment heading
+```
+
+# 3. Data Cleaning
+
+```{r}
+source("../code/03_cleaning_data.R")
+
+source("../code/03_cleaning_data_mixed_imputation.R")
+
+data_cleaning(prot_data, Exp_design, comparisons, output_path, mnar_var="zero")
+```
+
+
+# 4. Data Analysis
+```{r}
+# Load desired imputation file
+#data_analysis(mixed_imputation, Exp_design, comparisons, output_path)
+data_analysis(mixed_imputation, Exp_design, comparisons, output_path)
+```
+
+
+
+# 5. Plots
+```{r}
+#Change to 1 to print Barplots
+print_barplots <- 0
+
+source("../code/05_Plots.R")
+
+```
+
+# 6. GO
+```{r}
+#Use upregulated and downregulated genes independently. Yes = 1, No = 0. 
+independent_UPDOWN <- 1
+#Select type of ontology
+ont <- "ALL" #Modify to "BP", "MF" or "CC" on base of your needs
+
+source("../code/06_GO.R")
+```
+
+# 7. Strings
+```{r}
+source("../code/07_Strings.R")
+```
+
+
+# 8. gseGO & KEGG
+```{r}
+source("../code/08_gseGO.R")
+```
+
+
+```{r}
+source("../code/09_gseKEGG.R")
+
+```
+
+# 10. RBioAPI String and Panther
+```{r}
+source("../code/10_RBioApi_string.R") 
+source("../code/11_RBioApi_panther.R")
+```
+
+# 11. Adj
+
+```{r}
+source("../code/13_GO_padj.R")
+
+source("../code/15_gseGO_adj.R")
+source("../code/13_gseKEGG_padj.R")
+
+
+```

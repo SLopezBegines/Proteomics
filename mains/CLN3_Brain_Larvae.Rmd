@@ -1,0 +1,337 @@
+---
+title: "CLN3 Zebrafish proteomics"
+author: "SLB"
+date: "2025-03-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Importing data
+
+## Loading functions
+```{r}
+rm(list=ls())
+gc()
+```
+
+
+```{r}
+#source("../code/global_variables.R")
+source("../code/00_packages.R")
+source("../code/01_loading_data.R")
+source("../code/03_cleaning_data.R")
+source("../code/04_data_analysis.R")
+
+image_number <- 1
+kegg_organism = "dre"#dre for Danio rerio, hsa for Homo sapiens, mmu for Mus musculus
+species <- 7955 #9606 for Human, 10090 for mouse, 7955 for zebrafish
+organism <- "org.Dr.eg.db" #"org.Hs.eg.db"
+```
+
+
+
+# 2. Experiment desing
+# CLN3 only
+
+```{r}
+rm(list=ls())
+gc()
+image_number <- 1
+kegg_organism = "dre"#dre for Danio rerio, hsa for Homo sapiens, mmu for Mus musculus
+species <- 7955 #9606 for Human, 10090 for mouse, 7955 for zebrafish
+organism <- "org.Dr.eg.db" #"org.Hs.eg.db"
+output_path <- "./output/CLN3/Brains/"
+source("../code/global_variables.R")
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+
+#comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT", "CLN12_vs_WT", "CLN3_Lux1_vs_CLN3_Lux2", "CLN3_Lux1_vs_CLN12", "CLN3_Lux2_vs_CLN12")
+comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT")
+
+#comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT")
+#comparisons <- c("CLN12_vs_WT")
+#comparisons <- c("CLN3_Lux1_vs_WT")
+
+label <-    c("lfq_wt_1", "lfq_wt_2", "lfq_wt_3","lfq_wt_4",
+              "lfq_cln3_lux1_1", "lfq_cln3_lux1_2","lfq_cln3_lux1_3", "lfq_cln3_lux1_4",
+              "lfq_cln3_lux2_1","lfq_cln3_lux2_2", "lfq_cln3_lux2_3", "lfq_cln3_lux2_4")
+
+label_columns <-  label
+
+columns_to_rename <- c("WT_1", "WT_2","WT_3", "WT_4",
+                       "CLN3_Lux1_1", "CLN3_Lux1_2", "CLN3_Lux1_3","CLN3_Lux1_4",
+                       "CLN3_Lux2_1","CLN3_Lux2_2", "CLN3_Lux2_3","CLN3_Lux2_4"
+                       )
+
+
+condition <- as.factor(c("WT","WT","WT","WT",
+                         "CLN3_Lux1","CLN3_Lux1","CLN3_Lux1","CLN3_Lux1",
+                         "CLN3_Lux2","CLN3_Lux2","CLN3_Lux2","CLN3_Lux2"
+                         ))
+replicate <- c(1,2,3,4,
+               1,2,3,4,
+               1,2,3,4)
+
+experiment <- rep("Brains", 12)
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+
+```{r}
+source("../code/00_packages.R")
+source("../code/01_loading_data.R")
+source("../code/03_cleaning_data.R")
+source("../code/04_data_analysis.R")
+```
+
+
+
+```{r}
+prot_data <- readxl::read_xlsx(path = "../rawdata/20240126_ZF_brains_lfq_proteomic.xlsx")
+loading_data(prot_data)
+
+source("../code/03_cleaning_data_mixed_imputation.R")
+data_cleaning(prot_data, Exp_design, comparisons, output_path, fraction_NA =0.6, factor_SD_impute =0.05, mnar_var="zero")
+
+# Load desired imputation file
+data_analysis(mixed_splited_imputation, Exp_design, comparisons, output_path)
+#Change to 1 to print Barplots
+print_barplots <- 1
+source("../code/05_Plots.R")
+#Use upregulated and downregulated genes independently
+independent_UPDOWN <- 1
+#Select type of ontology
+ont <- "ALL" #Modify to "BP", "MF" or "CC" on base of your needs
+source("../code/06_GO.R")
+independent_UPDOWN <- 1
+source("../code/07_Strings.R")
+source("../code/08_gseGO.R")
+##source("../code/11_RBioApi_panther.R")
+source("../code/14.venn_diagram.R")
+#source("../code/09_gseKEGG.R")
+#source("../code/13_GO_padj.R")
+#source("../code/15_gseGO_adj.R")
+#source("../code/13_gseKEGG_padj.R")
+```
+
+
+# Larvae
+
+# 2. Experiment Design
+## CLN3 Experiment design
+```{r}
+rm(list=ls())
+gc()
+image_number <- 1
+kegg_organism = "dre"#dre for Danio rerio, hsa for Homo sapiens, mmu for Mus musculus
+species <- 7955 #9606 for Human, 10090 for mouse, 7955 for zebrafish
+organism <- "org.Dr.eg.db" #"org.Hs.eg.db"
+output_path <- "./output/CLN3/Larvae/"
+
+
+source("../code/global_variables.R")
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+
+#comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT", "CLN12_vs_WT", "CLN3_Lux1_vs_CLN3_Lux2", "CLN3_Lux1_vs_CLN12", "CLN3_Lux2_vs_CLN12")
+comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT")
+#comparisons <- c("CLN12_vs_WT")
+#comparisons <- c("CLN3_Lux1_vs_WT")
+
+label <-    c("lfq_wt_1", "lfq_wt_2", "lfq_wt_3", "lfq_wt_4",
+              "lfq_cln3_lux1_1", "lfq_cln3_lux1_2", "lfq_cln3_lux1_3", "lfq_cln3_lux1_4",
+              "lfq_cln3_lux2_1", "lfq_cln3_lux2_2", "lfq_cln3_lux2_3", "lfq_cln3_lux2_4")
+
+label_columns <-  label
+
+columns_to_rename <- c("WT_1","WT_2","WT_3", "WT_4",
+                       "CLN3_Lux1_1", "CLN3_Lux1_2", "CLN3_Lux1_3", "CLN3_Lux1_4",
+                       "CLN3_Lux2_1", "CLN3_Lux2_2", "CLN3_Lux2_3", "CLN3_Lux2_4")
+
+
+condition <- as.factor(c("WT","WT","WT","WT",
+                         "CLN3_Lux1","CLN3_Lux1","CLN3_Lux1","CLN3_Lux1",
+                         "CLN3_Lux2","CLN3_Lux2","CLN3_Lux2","CLN3_Lux2"))
+replicate <- c(1,2,3,4,
+               1,2,3,4,
+               1,2,3,4)
+
+experiment <- rep("Larvae",length(replicate))
+Exp_design <- cbind.data.frame(label,condition,replicate, columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+
+```{r}
+source("../code/00_packages.R")
+source("../code/01_loading_data.R")
+source("../code/03_cleaning_data.R")
+source("../code/04_data_analysis.R")
+```
+
+
+
+```{r}
+# Select input data file
+prot_data <- readxl::read_xlsx(path = "../rawdata/Larvae_LFQ_CLN3.xlsx")
+loading_data(prot_data)
+
+source("../code/03_cleaning_data_mixed_imputation.R")
+data_cleaning(prot_data, Exp_design, comparisons, output_path, fraction_NA =0.6, factor_SD_impute =0.05, mnar_var="zero")
+
+# Load desired imputation file
+data_analysis(mixed_splited_imputation, Exp_design, comparisons, output_path)
+#Change to 1 to print Barplots
+print_barplots <- 1
+source("../code/05_Plots.R")
+#Use upregulated and downregulated genes independently
+independent_UPDOWN <- 1
+#Select type of ontology
+ont <- "ALL" #Modify to "BP", "MF" or "CC" on base of your needs
+source("../code/06_GO.R")
+independent_UPDOWN <- 1
+source("../code/07_Strings.R")
+source("../code/08_gseGO.R")
+#source("../code/11_RBioApi_panther.R")
+independent_UPDOWN <- 1
+source("../code/14.venn_diagram.R")
+source("../code/09_gseKEGG.R")
+##source("../code/13_GO_padj.R")
+##source("../code/15_gseGO_adj.R")
+#source("../code/13_gseKEGG_padj.R")
+```
+# Outliers removed
+
+
+## CLN3 Experiment design
+```{r}
+rm(list=ls())
+gc()
+image_number <- 1
+kegg_organism = "dre"#dre for Danio rerio, hsa for Homo sapiens, mmu for Mus musculus
+species <- 7955 #9606 for Human, 10090 for mouse, 7955 for zebrafish
+organism <- "org.Dr.eg.db" #"org.Hs.eg.db"
+output_path <- "./output/CLN3/Larvae/outliers_removed/"
+
+
+source("../code/global_variables.R")
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+
+#comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT", "CLN12_vs_WT", "CLN3_Lux1_vs_CLN3_Lux2", "CLN3_Lux1_vs_CLN12", "CLN3_Lux2_vs_CLN12")
+comparisons <- c("CLN3_Lux1_vs_WT","CLN3_Lux2_vs_WT")
+#comparisons <- c("CLN12_vs_WT")
+#comparisons <- c("CLN3_Lux1_vs_WT")
+
+label <-    c("lfq_wt_1", "lfq_wt_2", "lfq_wt_3", "lfq_wt_4",
+              "lfq_cln3_lux1_2", "lfq_cln3_lux1_3", "lfq_cln3_lux1_4",
+              "lfq_cln3_lux2_1", "lfq_cln3_lux2_2", "lfq_cln3_lux2_3")
+
+label_columns <-  label
+
+columns_to_rename <- c("WT_1","WT_2","WT_3", "WT_4",
+                        "CLN3_Lux1_2", "CLN3_Lux1_3", "CLN3_Lux1_4",
+                       "CLN3_Lux2_1", "CLN3_Lux2_2", "CLN3_Lux2_3")
+
+
+condition <- as.factor(c("WT","WT","WT","WT",
+                         "CLN3_Lux1","CLN3_Lux1","CLN3_Lux1",
+                         "CLN3_Lux2","CLN3_Lux2","CLN3_Lux2"))
+replicate <- c(1,2,3,4,
+               2,3,4,
+               1,2,3)
+
+experiment <- rep("Larvae",length(replicate))
+Exp_design <- cbind.data.frame(label,condition,replicate, columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+
+```{r}
+source("../code/00_packages.R")
+source("../code/01_loading_data.R")
+source("../code/03_cleaning_data.R")
+source("../code/04_data_analysis.R")
+```
+
+
+
+```{r}
+# Select input data file
+prot_data <- readxl::read_xlsx(path = "../rawdata/Larvae_LFQ_CLN3.xlsx")
+loading_data(prot_data)
+
+source("../code/03_cleaning_data_mixed_imputation.R")
+data_cleaning(prot_data, Exp_design, comparisons, output_path, fraction_NA =0.6, factor_SD_impute =0.05, mnar_var="zero")
+
+# Load desired imputation file
+data_analysis(mixed_splited_imputation, Exp_design, comparisons, output_path)
+#Change to 1 to print Barplots
+print_barplots <- 1
+source("../code/05_Plots.R")
+#Use upregulated and downregulated genes independently
+independent_UPDOWN <- 1
+#Select type of ontology
+ont <- "ALL" #Modify to "BP", "MF" or "CC" on base of your needs
+source("../code/06_GO.R")
+independent_UPDOWN <- 1
+source("../code/07_Strings.R")
+source("../code/08_gseGO.R")
+#source("../code/11_RBioApi_panther.R")
+source("../code/09_gseKEGG.R")
+independent_UPDOWN <- 1
+source("../code/14.venn_diagram.R")
+##source("../code/13_GO_padj.R")
+##source("../code/15_gseGO_adj.R")
+#source("../code/13_gseKEGG_padj.R")
+```
+## KNN imputation
+
+```{r}
+
+
+output_path <- "./output/CLN3/Larvae/outliers_removed/KNN/"
+source("../code/00_packages.R")
+# Load desired imputation file
+data_analysis(data_imp_knn, Exp_design, comparisons, output_path)
+#Change to 1 to print Barplots
+print_barplots <- 1
+source("../code/05_Plots.R")
+#Use upregulated and downregulated genes independently
+independent_UPDOWN <- 1 
+#Select type of ontology
+ont <- "ALL" #Modify to "BP", "MF" or "CC" on base of your needs
+source("../code/06_GO.R")
+independent_UPDOWN <- 1
+source("../code/07_Strings.R")
+source("../code/08_gseGO.R")
+#source("../code/11_RBioApi_panther.R")
+source("../code/09_gseKEGG.R")
+independent_UPDOWN <- 1
+source("../code/14.venn_diagram.R")
+```
+

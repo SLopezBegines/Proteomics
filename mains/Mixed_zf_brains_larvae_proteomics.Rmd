@@ -1,0 +1,464 @@
+# Importing data
+```{r}
+# Especify output path
+output_path <- "./output/WT_change/CLN3/Mixed/"
+source("../code/global_variables.R")
+source("../code/00_packages.R")
+```
+
+# Select data from larvae and brains
+
+```{r}
+# Select input data file
+prot_data_larvae <- readxl::read_xlsx(path = "./raw_data/Larvae_LFQ_CLN3.xlsx")
+prot_data_brain <- readxl::read_xlsx(path = "./raw_data/20240126_ZF_brains_lf_proteomic_WT_Lux1_Changed.xlsx")
+# selec data #### 
+prot_data_brain <- prot_data_brain[,c(1:4,21:32) ]
+prot_data_larvae <- prot_data_larvae[,c(1:16)]
+
+prot_data <- dplyr::full_join(prot_data_brain, prot_data_larvae, by =c("accession"="accession", "DESCRIPTION" = "description", "gene_names" = "genename", "protein_length_aa" = "protein_length"))
+
+prot_data[prot_data == 0] <- NA
+
+columns <- c("lfq_wt_1.x", "lfq_wt_2.x", "lfq_wt_3.x", "lfq_wt_4.x",
+             "lfq_cln3_lux1_1.x", "lfq_cln3_lux1_2.x", "lfq_cln3_lux1_3.x", "lfq_cln3_lux1_4.x",
+             "lfq_cln3_lux2_1.x", "lfq_cln3_lux2_2.x", "lfq_cln3_lux2_3.x", "lfq_cln3_lux2_4.x",
+             "lfq_wt_1.y", "lfq_wt_2.y", "lfq_wt_3.y", "lfq_wt_4.y",
+             "lfq_cln3_lux1_1.y", "lfq_cln3_lux1_2.y", "lfq_cln3_lux1_3.y", "lfq_cln3_lux1_4.y",
+             "lfq_cln3_lux2_1.y", "lfq_cln3_lux2_2.y", "lfq_cln3_lux2_3.y", "lfq_cln3_lux2_4.y")
+
+
+prot_data <- prot_data %>%
+  rowwise() %>%
+  filter(!(all(is.na(across(all_of(columns)))) |
+           sum(is.na(across(all_of(columns)))) >= length(columns) - 1))
+
+
+prot_data %>% 
+  write_xlsx(paste0(output_path,"tables/prot_data.xlsx"))
+```
+
+
+```{r}
+source("code/01_loading_data.R")
+loading_data(prot_data_brain)
+loading_data(prot_data_larvae)
+loading_data(prot_data)
+```
+
+# CLN3 Experiment design
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+
+comparisons <- c("Brain_CLN3_Lux1_vs_Larvae_CLN3_Lux1",
+                 "Brain_WT_vs_Larvae_WT",
+                 "Brain_CLN3_Lux2_vs_Larvae_CLN3_Lux2" )
+
+
+
+label <-    c("lfq_wt_1.x", "lfq_wt_2.x", "lfq_wt_3.x", "lfq_wt_4.x",
+             "lfq_cln3_lux1_1.x", "lfq_cln3_lux1_2.x", "lfq_cln3_lux1_3.x", "lfq_cln3_lux1_4.x",
+             "lfq_cln3_lux2_1.x", "lfq_cln3_lux2_2.x", "lfq_cln3_lux2_3.x", "lfq_cln3_lux2_4.x",
+             "lfq_wt_1.y","lfq_wt_2.y", "lfq_wt_3.y", "lfq_wt_4.y",
+             "lfq_cln3_lux1_2.y", "lfq_cln3_lux1_3.y", "lfq_cln3_lux1_4.y",
+             "lfq_cln3_lux2_1.y", "lfq_cln3_lux2_2.y", "lfq_cln3_lux2_3.y")
+
+label_columns <-  label
+
+columns_to_rename <- c("Brain_WT_1", "Brain_WT_2", "Brain_WT_3", "Brain_WT_4",
+                       "Brain_CLN3_Lux1_1","Brain_CLN3_Lux1_2", "Brain_CLN3_Lux1_3","Brain_CLN3_Lux1_4",
+                       "Brain_CLN3_Lux2_1","Brain_CLN3_Lux2_2", "Brain_CLN3_Lux2_3", "Brain_CLN3_Lux2_4",
+                       "Larvae_WT_1","Larvae_WT_2","Larvae_WT_3", "Larvae_WT_4",
+                       "Larvae_CLN3_Lux1_2", "Larvae_CLN3_Lux1_3","Larvae_CLN3_Lux1_4",
+                       "Larvae_CLN3_Lux2_1","Larvae_CLN3_Lux2_2", "Larvae_CLN3_Lux2_3"
+                       )
+
+
+condition <- as.factor(c("Brain_WT","Brain_WT","Brain_WT","Brain_WT",
+                         "Brain_CLN3_Lux1","Brain_CLN3_Lux1","Brain_CLN3_Lux1","Brain_CLN3_Lux1",
+                         "Brain_CLN3_Lux2","Brain_CLN3_Lux2","Brain_CLN3_Lux2","Brain_CLN3_Lux2",
+                         "Larvae_WT","Larvae_WT","Larvae_WT","Larvae_WT",
+                         "Larvae_CLN3_Lux1","Larvae_CLN3_Lux1","Larvae_CLN3_Lux1",
+                         "Larvae_CLN3_Lux2", "Larvae_CLN3_Lux2", "Larvae_CLN3_Lux2"
+                         ))
+
+replicate <- c(1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               2,3,4,
+               1,2,3)
+
+experiment <- c(rep("Brain",12),
+                rep("Larvae",10))
+
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+## CLN3 Experiment design Outliers removed
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+
+comparisons <- c("Brain_CLN3_Lux1_vs_Larvae_CLN3_Lux1",
+                 "Brain_WT_vs_Larvae_WT",
+                 "Brain_CLN3_Lux2_vs_Larvae_CLN3_Lux2" )
+
+
+
+label <-    c("lfq_wt_1.x", "lfq_wt_2.x", "lfq_wt_3.x", "lfq_wt_4.x",
+             "lfq_cln3_lux1_1.x", "lfq_cln3_lux1_2.x", "lfq_cln3_lux1_3.x", "lfq_cln3_lux1_4.x",
+             "lfq_cln3_lux2_1.x", "lfq_cln3_lux2_2.x", "lfq_cln3_lux2_3.x", "lfq_cln3_lux2_4.x",
+             "lfq_wt_1.y","lfq_wt_2.y", "lfq_wt_3.y", "lfq_wt_4.y",
+             "lfq_cln3_lux1_1.y","lfq_cln3_lux1_2.y", "lfq_cln3_lux1_3.y", "lfq_cln3_lux1_4.y",
+             "lfq_cln3_lux2_1.y", "lfq_cln3_lux2_2.y", "lfq_cln3_lux2_3.y", "lfq_cln3_lux2_4.y")
+
+label_columns <-  label
+
+columns_to_rename <- c("Brain_WT_1", "Brain_WT_2", "Brain_WT_3", "Brain_WT_4",
+                       "Brain_CLN3_Lux1_1","Brain_CLN3_Lux1_2", "Brain_CLN3_Lux1_3","Brain_CLN3_Lux1_4",
+                       "Brain_CLN3_Lux2_1","Brain_CLN3_Lux2_2", "Brain_CLN3_Lux2_3", "Brain_CLN3_Lux2_4",
+                       "Larvae_WT_1","Larvae_WT_2","Larvae_WT_3", "Larvae_WT_4",
+                       "Larvae_CLN3_Lux1_1", "Larvae_CLN3_Lux1_2", "Larvae_CLN3_Lux1_3","Larvae_CLN3_Lux1_4",
+                       "Larvae_CLN3_Lux2_1","Larvae_CLN3_Lux2_2", "Larvae_CLN3_Lux2_3", "Larvae_CLN3_Lux2_4"
+                       )
+
+
+condition <- as.factor(c("Brain_WT","Brain_WT","Brain_WT","Brain_WT",
+                         "Brain_CLN3_Lux1","Brain_CLN3_Lux1","Brain_CLN3_Lux1","Brain_CLN3_Lux1",
+                         "Brain_CLN3_Lux2","Brain_CLN3_Lux2","Brain_CLN3_Lux2","Brain_CLN3_Lux2",
+                         "Larvae_WT","Larvae_WT","Larvae_WT","Larvae_WT",
+                         "Larvae_CLN3_Lux1", "Larvae_CLN3_Lux1","Larvae_CLN3_Lux1","Larvae_CLN3_Lux1",
+                         "Larvae_CLN3_Lux2", "Larvae_CLN3_Lux2", "Larvae_CLN3_Lux2","Larvae_CLN3_Lux2"
+                         ))
+
+replicate <- c(1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               1,2,3,4)
+
+experiment <- c(rep("Brain",12),
+                rep("Larvae",12))
+
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+### CLN3 Experiment design Brains
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+
+comparisons <- c("Brain_CLN3_Lux1_vs_Larvae_CLN3_Lux1",
+                 "Brain_WT_vs_Larvae_WT",
+                 "Brain_CLN3_Lux2_vs_Larvae_CLN3_Lux2" )
+
+
+
+label <-    c("lfq_wt_1.x", "lfq_wt_2.x", "lfq_wt_3.x", "lfq_wt_4.x",
+             "lfq_cln3_lux1_1.x", "lfq_cln3_lux1_2.x", "lfq_cln3_lux1_3.x", "lfq_cln3_lux1_4.x",
+             "lfq_cln3_lux2_1.x", "lfq_cln3_lux2_2.x", "lfq_cln3_lux2_3.x", "lfq_cln3_lux2_4.x",
+             "lfq_wt_1.y","lfq_wt_2.y", "lfq_wt_3.y", "lfq_wt_4.y",
+             "lfq_cln3_lux1_1.y","lfq_cln3_lux1_2.y", "lfq_cln3_lux1_3.y", "lfq_cln3_lux1_4.y",
+             "lfq_cln3_lux2_1.y", "lfq_cln3_lux2_2.y", "lfq_cln3_lux2_3.y", "lfq_cln3_lux2_4.y")
+
+label_columns <-  label
+
+columns_to_rename <- c("Brain_WT_1", "Brain_WT_2", "Brain_WT_3", "Brain_WT_4",
+                       "Brain_CLN3_Lux1_1","Brain_CLN3_Lux1_2", "Brain_CLN3_Lux1_3","Brain_CLN3_Lux1_4",
+                       "Brain_CLN3_Lux2_1","Brain_CLN3_Lux2_2", "Brain_CLN3_Lux2_3", "Brain_CLN3_Lux2_4",
+                       "Larvae_WT_1","Larvae_WT_2","Larvae_WT_3", "Larvae_WT_4",
+                       "Larvae_CLN3_Lux1_1", "Larvae_CLN3_Lux1_2", "Larvae_CLN3_Lux1_3","Larvae_CLN3_Lux1_4",
+                       "Larvae_CLN3_Lux2_1","Larvae_CLN3_Lux2_2", "Larvae_CLN3_Lux2_3", "Larvae_CLN3_Lux2_4"
+                       )
+
+
+condition <- as.factor(c("Brain_WT","Brain_WT","Brain_WT","Brain_WT",
+                         "Brain_CLN3_Lux1","Brain_CLN3_Lux1","Brain_CLN3_Lux1","Brain_CLN3_Lux1",
+                         "Brain_CLN3_Lux2","Brain_CLN3_Lux2","Brain_CLN3_Lux2","Brain_CLN3_Lux2",
+                         "Larvae_WT","Larvae_WT","Larvae_WT","Larvae_WT",
+                         "Larvae_CLN3_Lux1", "Larvae_CLN3_Lux1","Larvae_CLN3_Lux1","Larvae_CLN3_Lux1",
+                         "Larvae_CLN3_Lux2", "Larvae_CLN3_Lux2", "Larvae_CLN3_Lux2","Larvae_CLN3_Lux2"
+                         ))
+
+replicate <- c(1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               1,2,3,4)
+
+experiment <- c(rep("Brain",12),
+                rep("Larvae",12))
+
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+### CLN3 Experiment design Larvae
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+
+comparisons <- c("Brain_CLN3_Lux1_vs_Larvae_CLN3_Lux1",
+                 "Brain_WT_vs_Larvae_WT",
+                 "Brain_CLN3_Lux2_vs_Larvae_CLN3_Lux2" )
+
+
+
+label <-    c("lfq_wt_1.x", "lfq_wt_2.x", "lfq_wt_3.x", "lfq_wt_4.x",
+             "lfq_cln3_lux1_1.x", "lfq_cln3_lux1_2.x", "lfq_cln3_lux1_3.x", "lfq_cln3_lux1_4.x",
+             "lfq_cln3_lux2_1.x", "lfq_cln3_lux2_2.x", "lfq_cln3_lux2_3.x", "lfq_cln3_lux2_4.x",
+             "lfq_wt_1.y","lfq_wt_2.y", "lfq_wt_3.y", "lfq_wt_4.y",
+             "lfq_cln3_lux1_1.y","lfq_cln3_lux1_2.y", "lfq_cln3_lux1_3.y", "lfq_cln3_lux1_4.y",
+             "lfq_cln3_lux2_1.y", "lfq_cln3_lux2_2.y", "lfq_cln3_lux2_3.y", "lfq_cln3_lux2_4.y")
+
+label_columns <-  label
+
+columns_to_rename <- c("Brain_WT_1", "Brain_WT_2", "Brain_WT_3", "Brain_WT_4",
+                       "Brain_CLN3_Lux1_1","Brain_CLN3_Lux1_2", "Brain_CLN3_Lux1_3","Brain_CLN3_Lux1_4",
+                       "Brain_CLN3_Lux2_1","Brain_CLN3_Lux2_2", "Brain_CLN3_Lux2_3", "Brain_CLN3_Lux2_4",
+                       "Larvae_WT_1","Larvae_WT_2","Larvae_WT_3", "Larvae_WT_4",
+                       "Larvae_CLN3_Lux1_1", "Larvae_CLN3_Lux1_2", "Larvae_CLN3_Lux1_3","Larvae_CLN3_Lux1_4",
+                       "Larvae_CLN3_Lux2_1","Larvae_CLN3_Lux2_2", "Larvae_CLN3_Lux2_3", "Larvae_CLN3_Lux2_4"
+                       )
+
+
+condition <- as.factor(c("Brain_WT","Brain_WT","Brain_WT","Brain_WT",
+                         "Brain_CLN3_Lux1","Brain_CLN3_Lux1","Brain_CLN3_Lux1","Brain_CLN3_Lux1",
+                         "Brain_CLN3_Lux2","Brain_CLN3_Lux2","Brain_CLN3_Lux2","Brain_CLN3_Lux2",
+                         "Larvae_WT","Larvae_WT","Larvae_WT","Larvae_WT",
+                         "Larvae_CLN3_Lux1", "Larvae_CLN3_Lux1","Larvae_CLN3_Lux1","Larvae_CLN3_Lux1",
+                         "Larvae_CLN3_Lux2", "Larvae_CLN3_Lux2", "Larvae_CLN3_Lux2","Larvae_CLN3_Lux2"
+                         ))
+
+replicate <- c(1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               1,2,3,4,
+               1,2,3,4)
+
+experiment <- c(rep("Brain",12),
+                rep("Larvae",12))
+
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+# CLN12 Experiment design
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+comparisons <- c("Brain_CLN12_vs_Larvae_CLN12", "Brain_WT_vs_Larvae_WT" )
+
+
+
+label <-    c("lfq_wt_1", "lfq_wt_2", "lfq_wt_3", "lfq_wt_4",
+              "lfq_cln12_1", "lfq_cln12_2", "lfq_cln12_3", "lfq_cln12_4",
+              "lfq_cln12_wt_2", "lfq_cln12_wt_3", "lfq_cln12_wt_4",
+              "lfq_cln12_ko_1", "lfq_cln12_ko_2", "lfq_cln12_ko_3", "lfq_cln12_ko_4"  )
+
+label_columns <-  label
+
+columns_to_rename <- c("Brain_WT_1", "Brain_WT_2","Brain_WT_3", "Brain_WT_4",
+                       "Brain_CLN12_1","Brain_CLN12_2", "Brain_CLN12_3", "Brain_CLN12_4",
+                       "Larvae_WT_2","Larvae_WT_3", "Larvae_WT_4",
+                       "Larvae_CLN12_1","Larvae_CLN12_2", "Larvae_CLN12_3", "Larvae_CLN12_4")
+
+condition <- as.factor(c("Brain_WT","Brain_WT","Brain_WT","Brain_WT",
+                         "Brain_CLN12","Brain_CLN12","Brain_CLN12","Brain_CLN12",
+                         "Larvae_WT","Larvae_WT","Larvae_WT",
+                         "Larvae_CLN12","Larvae_CLN12","Larvae_CLN12","Larvae_CLN12"
+                         ))
+
+
+
+replicate <- c(1,2,3,4,
+               1,2,3,4,
+               2,3,4,
+               1,2,3,4)
+
+experiment <- c("Brain","Brain","Brain","Brain",
+                "Brain","Brain","Brain","Brain",
+                "Larvae","Larvae","Larvae",
+                "Larvae","Larvae","Larvae","Larvae")
+
+Exp_design <- cbind.data.frame(label,condition,replicate,columns_to_rename, experiment)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+## CLN12 brains
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+comparisons_CLN12_brains <- c("Brain_WT_vs_Brain_CLN12")
+
+
+
+label <-    c("lfq_wt_1", "lfq_wt_2", "lfq_wt_3", "lfq_wt_4",
+              "lfq_cln12_1", "lfq_cln12_2", "lfq_cln12_3", "lfq_cln12_4")
+
+label_columns <-  label
+
+columns_to_rename <- c("Brain_WT_1", "Brain_WT_2","Brain_WT_3", "Brain_WT_4",
+                       "Brain_CLN12_1","Brain_CLN12_2", "Brain_CLN12_3", "Brain_CLN12_4")
+
+condition <- as.factor(c("Brain_WT","Brain_WT","Brain_WT","Brain_WT",
+                         "Brain_CLN12","Brain_CLN12","Brain_CLN12","Brain_CLN12"))
+
+
+
+replicate <- c(1,2,3,4,
+               1,2,3,4)
+
+experiment <- c("Brain","Brain","Brain","Brain",
+                "Brain","Brain","Brain","Brain")
+
+Exp_design_CLN12_brains <- cbind.data.frame(label,condition,replicate, experiment)
+
+print(Exp_design_CLN12_brains)
+
+Exp_design_CLN12_brains %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing_CLN12_brains.xlsx"))
+
+```
+
+# CLN12 larvae
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+comparisons_Larvae_CLN12 <- c("Larvae_WT_vs_Larvae_CLN12")
+
+
+
+label <-    c("lfq_cln12_wt_2", "lfq_cln12_wt_3", "lfq_cln12_wt_4",
+              "lfq_cln12_ko_1", "lfq_cln12_ko_2", "lfq_cln12_ko_3", "lfq_cln12_ko_4"  )
+
+label_columns <-  label
+
+columns_to_rename <- c("Larvae_WT_2","Larvae_WT_3", "Larvae_WT_4",
+                       "Larvae_CLN12_1","Larvae_CLN12_2", "Larvae_CLN12_3", "Larvae_CLN12_4")
+
+condition <- as.factor(c("Larvae_WT","Larvae_WT","Larvae_WT",
+                         "Larvae_CLN12","Larvae_CLN12","Larvae_CLN12","Larvae_CLN12"
+                         ))
+
+
+
+replicate <- c(2,3,4,
+               1,2,3,4)
+
+experiment <- c("Larvae","Larvae","Larvae",
+                "Larvae","Larvae","Larvae","Larvae")
+
+Exp_design_Larvae_CLN12 <- cbind.data.frame(label,condition,replicate, experiment)
+
+print(Exp_design_Larvae_CLN12)
+
+Exp_design_Larvae_CLN12 %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+# 3. Data Cleaning
+```{r}
+source("code/03_cleaning_data.R")
+
+data_cleaning(prot_data, Exp_design, comparisons, "./output/WT_Change/CLN3/Mixed/Outliers_removed/")
+data_cleaning(prot_data_brain, Exp_design_CLN12_brains, comparisons_CLN12_brains, "./output/CLN3/Brains/")
+data_cleaning(prot_data_larvae, Exp_design_Larvae_CLN12, comparisons_Larvae_CLN12,"./output/CLN12/Larvae/")
+```
+
+# 4. Data Analysis
+```{r}
+source("code/04_data_analysis.R")
+# Load imputation filed from RData folder
+data_analysis(data_imp_knn, Exp_design, comparisons, "./output/WT_Change/CLN3/Mixed/Outliers_removed/")
+```
+# 5. Plots
+```{r}
+output_path <- "./output/CLN3/Mixed/Outliers_removed_2/"
+
+source("code/05_Plots.R")
+```
+
+# 6. GO
+```{r}
+source("code/06_GO.R")
+
+
+#Add panther for p_adj
+
+```
+
+# 7. Strings
+```{r}
+source("code/07_Strings.R")
+```
+
+# 8. gseGO & KEGG
+```{r}
+source("code/08_gseGO.R")
+
+source("code/09_gseKEGG.R")
+
+```
+
+# 10. RBioAPI String and Panther
+```{r}
+source("code/10_RBioApi_string.R") 
+source("code/11_RBioApi_panther.R")
+```
+
+# 11. Adj
+
+```{r}
+source("code/13_GO_padj.R")
+
+source("code/15_gseGO_adj.R")
+source("code/13_gseKEGG_padj.R")
+
+
+```
+

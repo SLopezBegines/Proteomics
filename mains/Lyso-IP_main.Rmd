@@ -1,0 +1,85 @@
+
+
+
+
+
+```{r}
+
+output_path <- "./output/"
+source("code/01_loading_data.R")
+```
+
+
+```{r}
+source("code/02_Experiment_desing.R")
+```
+
+```{r}
+# Experiment design ####
+# You just need modify script in Experiment heading
+
+label <- c( "HeLa_1", "HeLa_2","HeLa_4","HeLa_5",
+            "WT_1","WT_2","WT_3","WT_4","WT_5",
+            "KO_1","KO_2","KO_3","KO_4","KO_5")
+
+
+condition <- as.factor(c("HeLa","HeLa","HeLa","HeLa",
+                         "WT","WT","WT","WT","WT",
+                         "KO","KO","KO","KO","KO"))
+
+replicate <- c(1,2,4,5,
+               1,2,3,4,5,
+               1,2,3,4,5)
+
+label_columns <-  label
+
+columns_to_rename <- label
+
+comparisons <- c("HeLa_vs_WT", "HeLa_vs_KO", "WT_vs_KO")
+
+Exp_design <- cbind.data.frame(label,condition,replicate)
+Exp_design
+
+print(Exp_design)
+
+Exp_design %>% 
+  write_xlsx(paste0(output_path,"tables/experiment_desing.xlsx"))
+
+```
+
+
+```{r}
+source("code/03_cleaning_data.R")
+```
+
+
+```{r}
+output_path <- "./output/"
+
+source("code/04_data_analysis.R")
+
+source("code/05_Plots.R")
+```
+
+
+```{r}
+source("code/06_GO.R")
+#source("code/07_Strings.R")
+
+source("code/08_gseGO.R")
+
+source("code/09_gseKEGG.R")
+```
+
+
+```{r}
+source("code/10_RBioApi_string.R") 
+source("code/11_RBioApi_panther.R")
+```
+
+
+```{r}
+source("code/13_GO_padj.R")
+#Add panther for p_adj
+```
+
