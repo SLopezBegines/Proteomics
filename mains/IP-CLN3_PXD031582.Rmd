@@ -1,0 +1,293 @@
+---
+title: "CLN3 Lysosomal Interactome — Proteomics Analysis"
+subtitle: "Dataset: ProteomeXchange PXD031582"
+author: "Santiago López-Begines"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    theme: flatly
+    code_folding: show
+---
+
+# Importing Data
+
+This analysis processes a label-free quantitative (LFQ) proteomics dataset from an immunoprecipitation (IP) from ARPE19-pLVX-CLN3innHA cells targeting CLN3, a lysosomal transmembrane protein. The dataset (PXD031582) was acquired on an Orbitrap/Q-Exactive mass spectrometer and processed with MaxQuant.
+
+Calcagni’, A., Staiano, L., Zampelli, N. et al. Loss of the batten disease protein CLN3 leads to mis-trafficking of M6PR and defective autophagic-lysosomal reformation. Nat Commun 14, 3911 (2023). https://doi.org/10.1038/s41467-023-39643-7
+
+Data obtained from: https://www.ebi.ac.uk/pride/archive/projects/PXD031582
+
+The experiment compares three conditions — Control (CTRL), Wild-Type CLN3 (WT), and CLN3 Knockout (KO) — with 4 biological replicates each (12 samples total), to identify proteins that interact differentially with CLN3.
+
+## Environment Setup and Global Configuration
+
+Clear the workspace and configure organism-specific parameters that propagate to all downstream scripts (KEGG, Gene Ontology, annotation databases). The `global_variables.R` script sets analysis thresholds (p-value, fold-change) and creates the output directory structure.
+
+```{r setup, message=FALSE, warning=FALSE}
+rm(list = ls())
+gc()
+
+# --- Organism Configuration ---
+# These parameters control species-specific annotations across the entire pipeline:
+#   kegg_organism: KEGG species code (dre = Danio rerio, hsa = Homo sapiens, mmu = Mus musculus)
+#   species:       NCBI taxonomy ID 9606 for Human, 10090 for mouse, 7955 for zebrafish
+#   organism:      Bioconductor OrgDb annotation package "org.Mm.eg.db", "org.Dr.eg.db",  "org.Hs.eg.db"
+kegg_organism <- "hsa"
+species <- 9606
+organism <- "org.Hs.eg.db"
+
+
+# --- Output Configuration ---
+output_path <- "./output/IP_CLN3_PXD031582/"
+image_number <- 1  # Sequential counter for figure numbering
+
+# Load global thresholds (p_val, FC) and helper functions (create_directories)
+source("../code/global_variables.R")
+```
+
+## Loading Pipeline Functions
+
+Source the core pipeline modules. These scripts define the functions used throughout the analysis but do not execute any computation at this stage.
+
+```{r load-functions, message=FALSE, warning=FALSE}
+source("../code/01_loading_data.R")
+source("../code/03_cleaning_data_mixed_imputation.R")
+source("../code/04_data_analysis.R")
+```
+
+## Reading Raw Data
+
+Load the MaxQuant ProteinGroups output and apply initial preprocessing: zero values are replaced with NA (MaxQuant encodes missing LFQ intensities as 0), column names are standardized across different MaxQuant versions, and known contaminant proteins are identified and removed.
+
+```{r load-data}
+prot_data <- readxl::read_xlsx(path = "../rawdata/ProteinGroups_Project_PXD031582.xlsx")
+loading_data(prot_data)
+```
+
+# Experiment Design
+
+Define the full experimental layout. This is the only section that requires manual modification when adapting the pipeline to a new dataset. All downstream scripts use this design matrix to assign samples to conditions and generate the appropriate statistical contrasts.
+
+The design specifies:
+
+- **Comparisons**: pairwise contrasts to test (CTRL vs WT, CTRL vs KO, KO vs WT)
+- **Labels**: original MaxQuant LFQ column names used to locate intensity data
+- **Conditions & Replicates**: grouping factors for the linear model
+
+```{r experiment-design}
+# --- Pairwise Comparisons ---
+# Each string defines a limma contrast: "GroupA_vs_GroupB"
+comparisons <- c("CTRL_vs_WT", "CTRL_vs_KO", "KO_vs_WT")
+
+# --- Sample Mapping ---
+# label: exact column names in the MaxQuant output (used to extract LFQ intensities)
+label <- c(
+  "LFQ intensity CTRL_01", "LFQ intensity CTRL_02",
+  "LFQ intensity CTRL_03", "LFQ intensity CTRL_04",
+  "LFQ intensity TMEM_CLN3_KO_01", "LFQ intensity TMEM_CLN3_KO_02",
+  "LFQ intensity TMEM_CLN3_KO_03", "LFQ intensity TMEM_CLN3_KO_04",
+  "LFQ intensity TMEM_CLN3_WT_01", "LFQ intensity TMEM_CLN3_WT_02",
+  "LFQ intensity TMEM_CLN3_WT_03", "LFQ intensity TMEM_CLN3_WT_04"
+)
+
+label_columns <- label
+
+# columns_to_rename: short names assigned to each sample for internal use
+columns_to_rename <- c(
+  "CTRL_1", "CTRL_2", "CTRL_3", "CTRL_4",
+  "KO_1",   "KO_2",   "KO_3",   "KO_4",
+  "WT_1",   "WT_2",   "WT_3",   "WT_4"
+)
+
+# condition: grouping factor (must match the prefixes used in comparisons)
+condition <- as.factor(c(
+  "CTRL", "CTRL", "CTRL", "CTRL",
+  "KO",   "KO",   "KO",   "KO",
+  "WT",   "WT",   "WT",   "WT"
+))
+
+replicate <- rep(1:4, times = 3)
+
+experiment <- rep("Lyso_IP_cln3", length(replicate))
+
+# --- Build and Export Design Matrix ---
+Exp_design <- cbind.data.frame(label, condition, replicate, columns_to_rename, experiment)
+print(Exp_design)
+
+Exp_design %>%
+  writexl::write_xlsx(paste0(output_path, "tables/experiment_design.xlsx"))
+```
+
+# Data Cleaning
+
+Filter, normalize, and impute missing values. This step is critical in LFQ proteomics because missing values arise from two distinct mechanisms:
+
+- **MNAR** (Missing Not At Random): proteins below the instrument detection limit. These are imputed with low-intensity values (`zero`, `MinProb`, or `QRILC`).
+- **MAR** (Missing At Random): stochastic sampling failures. These are imputed using kNN from observed values.
+
+Key parameters:
+
+- `fraction_NA = 0.6`: proteins with >60% missing values within any condition are excluded
+- `factor_SD_impute = 0.05`: width of the distribution used for MNAR imputation (proportion of the sample SD)
+- `mnar_var = "zero"`: MNAR imputation method (alternatives: `"MinProb"`, `"QRILC"`)
+
+The function also applies VSN (Variance Stabilizing Normalization) and generates QC plots (protein overlap, coverage, missing value patterns, normalization diagnostics).
+
+```{r data-cleaning}
+source("../code/03_cleaning_data_mixed_imputation.R")
+
+data_cleaning(
+  prot_data,
+  Exp_design,
+  comparisons,
+  output_path,
+  fraction_NA     = 0.6,
+  factor_SD_impute = 0.05,
+  mnar_var         = "zero"
+)
+```
+
+# Differential Expression Analysis
+
+Perform differential expression using protein-wise linear models with empirical Bayes moderation (limma), wrapped by `DEP::analyze_dep()`. The function fits a model with the design formula `~0 + condition` (no intercept), tests the specified manual contrasts, and classifies proteins as significantly up/down-regulated based on the global thresholds (`p_val` and `FC` from `global_variables.R`).
+
+The input is the imputed `SummarizedExperiment` object from the cleaning step. Output includes a results table with log2 fold-changes, p-values, and adjusted p-values for each comparison, exported as Excel.
+
+```{r differential-expression}
+data_analysis(mixed_splited_imputation, Exp_design, comparisons, output_path)
+```
+
+# Visualization
+
+Generate publication-ready plots from the differential expression results:
+
+- **Volcano plots**: log2FC vs -log10(p-value) for each comparison, with DE proteins highlighted
+- **Heatmaps**: ComplexHeatmap clustering of significant proteins across all samples
+- **PCA biplots**: sample-level dimensionality reduction to assess group separation and outliers
+- **Barplots**: optional per-protein intensity barplots (disabled by default for performance)
+
+All figures are exported in dual format (TIFF for publication, PDF for vector editing) with sequential numbering.
+
+```{r plots, fig.width=10, fig.height=8}
+print_barplots <- 0  # Set to 1 to generate individual protein barplots (slow for large datasets)
+
+source("../code/05_Plots.R")
+```
+
+# Gene Ontology — Over-Representation Analysis (ORA)
+
+Identify enriched GO terms among differentially expressed proteins using `clusterProfiler::enrichGO()`. This is an ORA approach: it tests whether DE proteins are over-represented in specific GO categories compared to the full proteome background.
+
+Configuration:
+
+- `independent_UPDOWN = 1`: analyze upregulated and downregulated proteins separately (recommended for biological interpretation; set to 0 to analyze all DE proteins together)
+- `ont = "ALL"`: test all three GO ontologies simultaneously (alternatives: `"BP"` Biological Process, `"CC"` Cellular Component, `"MF"` Molecular Function)
+
+```{r go-enrichment}
+independent_UPDOWN <- 1
+ont <- "ALL"
+
+source("../code/06_GO.R")
+```
+
+# STRING Protein Interaction Networks
+
+Query the STRING database to retrieve known and predicted protein-protein interactions among differentially expressed proteins. Uses the `STRINGdb` package to map UniProt IDs to STRING identifiers and generate interaction networks for each comparison. This helps identify functional modules and hub proteins within the DE set.
+
+```{r string-networks}
+source("../code/07_Strings.R")
+```
+
+# Gene Set Enrichment Analysis (GSEA)
+
+Unlike ORA (section 6), GSEA does not require a predefined list of DE proteins. Instead, it ranks **all** quantified proteins by their fold-change and tests whether members of a functional category (GO term or KEGG pathway) tend to cluster at the top or bottom of the ranked list. This approach captures coordinated moderate changes that ORA might miss.
+
+Two analyses run in sequence:
+
+- **gseGO**: GSEA against Gene Ontology terms
+- **gseKEGG**: GSEA against KEGG metabolic and signaling pathways, with pathway maps rendered via `pathview`
+
+```{r gsea, message=FALSE, warning=FALSE}
+source("../code/08_gseGO.R")
+source("../code/09_gseKEGG.R")
+```
+
+# Programmatic API Queries — STRING and PANTHER
+
+Complement the local STRING analysis (section 7) with direct API queries via `rbioapi`. This retrieves up-to-date interaction data and functional annotations from:
+
+- **STRING**: protein-protein interaction scores, network images, and enrichment
+- **PANTHER**: protein classification, subfamily assignments, and GO-slim annotations
+
+Unlike the STRINGdb package, `rbioapi` queries the REST APIs directly, providing access to additional endpoints and the latest database versions.
+
+```{r rbioapi-queries, message=FALSE}
+source("../code/10_RBioApi_string.R")
+source("../code/11_RBioApi_panther.R")
+```
+
+# Adjusted p-value Enrichment Analysis
+
+Re-run the functional enrichment analyses (GO ORA, gseGO, gseKEGG) using a stricter significance threshold based on adjusted p-values (`p_val_low = 0.01` from `global_variables.R`). This serves as a sensitivity analysis to assess which enriched terms remain significant under more conservative multiple testing correction.
+
+```{r enrichment-adjusted}
+source("../code/13_GO_padj.R")
+source("../code/15_gseGO_adj.R")
+source("../code/13_gseKEGG_padj.R")
+```
+
+# Summary Statistics
+
+Compute and visualize summary metrics across all comparisons: total proteins quantified, number of DE proteins (up/down) per comparison, overlap between comparisons, and effect size distributions. This section provides a high-level overview of the experiment's results.
+
+```{r summary-stats}
+source("../code/17_summary_stats_proteomics.R")
+```
+
+## Statistical Summary Tables
+
+Aggregate differential expression statistics into structured tables for reporting. Two output formats are generated:
+
+- **Combined table** (`all_stats`): a single data frame with summary metrics across all comparisons, suitable for export
+- **Per-dataset tables** (`stats_list`): maintains a list structure for experiments with multiple datasets
+
+```{r stats-tables}
+list_results <- list(data_results)
+names(list_results) <- c("IP_CLN3")
+
+# Combined summary across all comparisons
+all_stats <- apply_stats_to_list(data_results, comparisons)
+print(all_stats)
+writexl::write_xlsx(all_stats, paste0(output_path, "tables/CLN3_all_proteomic_stats.xlsx"))
+
+# Per-dataset summary (useful when analyzing multiple experiments)
+stats_list <- apply_stats_to_list_separate(list_results, comparisons)
+stats_list$IP_CLN3 %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE)
+```
+
+## Summary Plots
+
+Visualize the summary statistics with multiple plot types:
+
+- `"summary"`: overview of total and DE proteins per comparison
+- `"regulation"` / `"regulation_adj"`: up vs down-regulated counts (nominal and adjusted p-values)
+- `"heatmap"`: significance heatmap across comparisons
+- `"comparison"`: side-by-side comparison of effect sizes
+- `"all"`: generate all plot types at once
+
+```{r stats-plots, fig.width=12, fig.height=8}
+plot_proteomic_stats(stats_list[[1]], plot_type = "all")
+
+# Individual plot types for fine-grained control
+plot_proteomic_stats(all_stats, plot_type = "summary")
+plot_proteomic_stats(all_stats, plot_type = "regulation")
+plot_proteomic_stats(all_stats, plot_type = "regulation_adj")
+plot_proteomic_stats(all_stats, plot_type = "heatmap")
+plot_proteomic_stats(all_stats, plot_type = "comparison")
+```
