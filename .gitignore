@@ -13,3 +13,5 @@ renv.lock
 .Rprofile
 rawdata/
 output/
+rawdata/*.xlsx
+config_git.R
