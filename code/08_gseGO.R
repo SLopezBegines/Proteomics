@@ -117,7 +117,7 @@ perform_cnetplots <- function(x) {
   # results <- enrichplot::cnetplot(x2)
   # For circular Gene Concept map
   # results <- enrichplot::cnetplot(x2, circular = TRUE, colorEdge = TRUE)
-  results <- enrichplot::cnetplot(x2, foldChange = x@geneList, circular = TRUE, colorEdge = TRUE)
+  results <- enrichplot::cnetplot(x2, foldChange = x@geneList)
   return(results)
 }
 
@@ -152,7 +152,7 @@ perform_pmcplots <- function(x) {
   } else {
     # results <- enrichplot::dotplot(x, showCategory = 30, split=".sign") + facet_grid(ONTOLOGY ~ ., scale = "free")+ scale_color_viridis()
     terms <- x@result$Description[1:3]
-    results <- enrichplot::pmcplot(terms, 2010:2023, proportion = FALSE)
+    results <- enrichplot::pmcplot(terms, 2010:2026, proportion = FALSE)
     # results <- enrichplot::dotplot(x, showCategory = 30)
     return(results)
   }

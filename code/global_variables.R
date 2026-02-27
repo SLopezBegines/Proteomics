@@ -22,7 +22,7 @@ create_directories <- function(base_path) {
       dir.create(path, recursive = TRUE)
       cat("Directory created:", path, "\n")
     } else {
-      cat("Directory already exists:", path, "\n")
+      # cat("Directory already exists:", path, "\n")
     }
   }
 

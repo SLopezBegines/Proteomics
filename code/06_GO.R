@@ -68,7 +68,6 @@ assign(paste0("results_list_enrichGO_", ont, "_names"), names(paste0("results_li
 save(list = paste0("results_list_enrichGO_", ont), file = paste0(output_path, "RData/results_list_enrichGO_", ont, ".RData"))
 
 
-
 # load results_list_go_ALL RData file
 # load(paste0(output_path,"RData/results_list_enrichGO_",ont,".RData"))
 
@@ -112,9 +111,9 @@ perform_cnetplots <- function(x) {
   } else {
     ## remove redundent GO terms
     x2 <- simplify(x)
-    # results <- enrichplot::cnetplot(x2)
+    results <- enrichplot::cnetplot(x2)
     # For circular Gene Concept map
-    results <- enrichplot::cnetplot(x2, circular = TRUE, colorEdge = TRUE)
+    # results <- enrichplot::cnetplot(x2, circular = TRUE, colorEdge = TRUE)
     return(results)
   }
 }
@@ -150,7 +149,7 @@ perform_treeplot <- function(go_result) {
   }
   edox <- pairwise_termsim(go_result)
   # tree1 <- treeplot(edox)
-  tree2 <- treeplot(edox, cluster.params = list(method = "average")) # nota del warning
+  tree2 <- treeplot(edox) # nota del warning
   tree2
   # aplot::plot_list(tree1, tree2, tag_levels = "A")
 }
@@ -227,7 +226,6 @@ for (i in seq_along(cnetplot_results)) {
 image_number <- image_number + i
 
 
-
 ### UPSET plot ####
 upsetplot_results <- lapply(results_list_GO, perform_upsetplot)
 
@@ -298,9 +296,7 @@ for (i in seq_along(treeplot_results)) {
   ggsave(paste0(filename, pdf_extension), p, width = 8, height = 6, dpi = 300)
   ggsave(paste0(filename, tiff_extension), p, width = 8, height = 6, dpi = 300)
 }
-
-
-
+image_number <- image_number + i
 
 # Look at this page follow it.
 # https://bioc.ism.ac.jp/packages/3.7/bioc/vignettes/enrichplot/inst/doc/enrichplot.html#bar-plot

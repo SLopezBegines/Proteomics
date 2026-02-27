@@ -14,4 +14,4 @@ renv.lock
 rawdata/
 output/
 rawdata/*.xlsx
-config_git.R
+
