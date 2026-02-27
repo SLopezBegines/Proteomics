@@ -1,45 +1,48 @@
 # Proteomics Analysis Pipeline
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Language: R](https://img.shields.io/badge/Language-R-276DC3.svg)](https://www.r-project.org/)
+[![Language: R](https://img.shields.io/badge/Language-R%20%E2%89%A54.3-276DC3.svg)](https://www.r-project.org/)
+[![Bioconductor](https://img.shields.io/badge/Bioconductor-%E2%89%A53.18-85BB65.svg)](https://bioconductor.org/)
 
 A modular and reproducible R pipeline for label-free quantitative (LFQ) proteomics data analysis. Designed to process MaxQuant output from Orbitrap and Q-Exactive mass spectrometers, covering the complete workflow from raw protein groups to functional enrichment.
 
 ## Pipeline Overview
 
-```
-Raw Data (MaxQuant ProteinGroups.txt / .xlsx)
-  │
-  ├── 1. Data Loading & Contaminant Removal
-  │
-  ├── 2. Experiment Design Definition
-  │
-  ├── 3. Data Cleaning & Mixed Imputation
-  │     ├── Missing value filtering
-  │     ├── Normalization (VSN)
-  │     └── Mixed imputation (MNAR: zero/MinProb/QRILC + MAR: kNN)
-  │
-  ├── 4. Differential Expression Analysis
-  │     └── limma + Empirical Bayes (via DEP)
-  │
-  ├── 5. Visualization
-  │     ├── Volcano plots
-  │     ├── Heatmaps (ComplexHeatmap)
-  │     ├── PCA plots
-  │     ├── Barplots
-  │     └── Venn / UpSet diagrams
-  │
-  ├── 6. Functional Enrichment
-  |     ├── Gene Ontology (enrichGO / gseGO)
-  |     ├── KEGG Pathways (gseKEGG / pathview)
-  |     ├── STRING protein interactions (rbioapi)
-  |     ├── PANTHER classification
-  |     └── EnrichR
-  |
-  └── 7. Summary statistics
+```mermaid
+flowchart TD
+    A["📥 MaxQuant output\nProteinGroups.txt / .xlsx"] --> B
 
+    subgraph QC ["1 · QC & Preprocessing"]
+        B["Load & standardise columns\nRemove contaminants"]
+        B --> C["Define experiment design\nconditions · replicates · contrasts"]
+        C --> D["Filter missing values\nfraction_NA threshold per condition"]
+        D --> E["VSN normalisation"]
+        E --> F["Mixed imputation\nMNAR → zero/MinProb/QRILC\nMAR  → kNN"]
+    end
 
+    subgraph DE ["2 · Differential Expression"]
+        F --> G["limma · empirical Bayes\n~0 + condition · manual contrasts"]
+        G --> H["Log₂FC · p-value · BH-adjusted p\nUP / DOWN / NO per comparison"]
+    end
 
+    subgraph VIZ ["3 · Visualisation"]
+        H --> I["Volcano plots\nHeatmaps · PCA · UpSet"]
+    end
+
+    subgraph ENRICH ["4 · Functional Enrichment"]
+        H --> J["ORA  — enrichGO\nGSEA — gseGO · gseKEGG · pathview"]
+        H --> K["STRING PPI networks\nPANTHER · EnrichR"]
+    end
+
+    subgraph SUMM ["5 · Summary"]
+        I & J & K --> L["Statistics tables\nDE counts · effect sizes"]
+    end
+
+    style QC fill:#e8f4f8,stroke:#2980b9
+    style DE fill:#eaf7ea,stroke:#27ae60
+    style VIZ fill:#fef9e7,stroke:#f39c12
+    style ENRICH fill:#fdf2f8,stroke:#8e44ad
+    style SUMM fill:#f9f9f9,stroke:#7f8c8d
 ```
 
 ## Repository Structure

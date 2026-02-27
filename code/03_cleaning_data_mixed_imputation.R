@@ -7,6 +7,27 @@ source("../code/00_packages.R")
 
 # Function takes as arguments 2 dataframes, one vector and one variable for the output path. One df with the protein data, other df with the experimental desing and a vector with the comparisons.
 
+# data_cleaning() -------------------------------------------------------
+# Full preprocessing pipeline: filtering → VSN normalization → mixed imputation.
+#
+# Arguments:
+#   prot_data        SummarizedExperiment or data.frame from loading_data()
+#   Exp_design       Experimental design table (label, condition, replicate, columns_to_rename)
+#   comparisons      Character vector of contrasts, e.g. c("CTRL_vs_WT", "KO_vs_WT")
+#   output_path      Base directory for all outputs (tables/, figures/, RData/)
+#   fraction_NA      Proteins with >= fraction_NA missing values in any condition are classified
+#                    as MNAR and imputed with a left-censored method (default 0.6)
+#   factor_SD_impute Width of the left-shifted Gaussian used for MNAR imputation, expressed
+#                    as a fraction of the global SD (default 0.05 = very narrow)
+#   mnar_var         MNAR imputation method passed to MSnbase::impute()
+#                    ("zero" | "MinProb" | "QRILC")
+#
+# Side effects:
+#   - Creates output directory structure via create_directories()
+#   - Writes QC figures, RData objects and summary tables under output_path
+#   - Exports mixed_splited_imputation (SummarizedExperiment) to the global env
+#     for use in the next step (04_data_analysis.R)
+# -----------------------------------------------------------------------
 data_cleaning <- function(prot_data, # input dataset
                           Exp_design, # Experimental matrix
                           comparisons, # Comparisons to be made
@@ -299,14 +320,22 @@ specifically the impute function description for more information.'
   # in all replicates of at least one condition
 
   ### Mixed Condition-Splited ####
+  # Strategy: classify each protein-per-condition independently as MNAR or MAR.
+  # A protein is MNAR in a given condition if it is missing in >= fraction_NA
+  # of replicates of that condition — indicating it is near/below the detection
+  # limit rather than stochastically absent. MNAR proteins are imputed with a
+  # value drawn from a left-shifted Gaussian anchored to the global minimum;
+  # MAR proteins are imputed with kNN using observed values from other samples.
+  # This per-condition split avoids over-imputation of true absences with kNN.
+
   # 1. Create the MNAR flag table from the long-format data.
   proteins_MNAR <- get_df_long(data_norm) %>%
     mutate(across(where(is_character), as_factor)) %>%
     group_by(name, condition) %>%
     summarize(
-      frac_NA = sum(is.na(intensity)) / n(), # fraction of missing
-      num_NAs = sum(is.na(intensity)), # count of missing
-      MNAR_flag = frac_NA >= fraction_NA, # TRUE if ≥50% missing
+      frac_NA = sum(is.na(intensity)) / n(), # fraction of missing values
+      num_NAs = sum(is.na(intensity)),        # absolute count of missing values
+      MNAR_flag = frac_NA >= fraction_NA,    # TRUE → treat as left-censored (MNAR)
       .groups = "drop"
     )
 
@@ -320,14 +349,17 @@ specifically the impute function description for more information.'
   # Global minimum for left-censored distribution
   global_min <- min(assay(data_norm), na.rm = TRUE)
   value_impute <- global_min - sd(assay(data_norm), na.rm = TRUE) * factor_SD_impute
-  # 3. Process each condition separately.
+  # 3. Process each condition separately so the MNAR/MAR classification is
+  #    condition-specific. A protein absent only in one condition should be
+  #    MNAR-imputed in that condition but kNN-imputed (MAR) in others.
   imputed_list <- lapply(conditions, function(cond) {
-    # Subset the SummarizedExperiment to only the columns (samples) for this condition.
+    # Subset to samples belonging to this condition only.
     se_cond <- data_norm[, colData(data_norm)$condition == cond]
 
-    # For each protein in this subset, get its MNAR flag.
-    # If a protein is not found, assume it is MAR (i.e. randna = TRUE).
-    # The impute function expects: TRUE = MAR (impute with knn) and FALSE = MNAR (impute as zero).
+    # Build a per-protein logical vector for impute():
+    #   randna = TRUE  → protein is MAR → use kNN
+    #   randna = FALSE → protein is MNAR → use left-censored method (mnar = "zero")
+    # MNAR_flag = TRUE means ≥ fraction_NA missing → randna must be FALSE (not random).
     randna_vec <- sapply(rownames(se_cond), function(prot) {
       flag <- proteins_MNAR %>%
         filter(name == prot, condition == cond) %>%
@@ -384,7 +416,13 @@ specifically the impute function description for more information.'
   # Now mixed_imputation contains the imputed data.
 
 
-  # Comparison SD of imputation methods ####
+  # compare_sd_imputations() ----------------------------------------------
+  # Diagnostic: compare per-protein SD before and after imputation for each
+  # method. A good imputation should preserve the pre-imputation SD structure
+  # (slope ≈ 1, intercept ≈ 0 in the before-vs-after scatter). Methods that
+  # severely inflate or deflate SD distort the downstream limma model.
+  # Exports a scatter plot, a wide SD table, and a linear model summary per method.
+  # -----------------------------------------------------------------------
   compare_sd_imputations <- function(data_norm, impute_list, output_path) {
     # 1) SD before
     sd_before_df <- get_df_long(data_norm) %>%
@@ -659,8 +697,17 @@ specifically the impute function description for more information.'
   image_number <<- image_number + 1
 
 
-  # PCA-plot Outlier identification ####
-  # Function to identify outliers within a group using robust PCA with error handling
+  # run_pca_hubert_analysis() ---------------------------------------------
+  # Outlier detection using robust PCA (PCAHubert, rrcov package).
+  # Classical PCA is sensitive to outliers; PCAHubert minimises their influence
+  # by fitting the subspace to the majority of the data. Samples flagged as
+  # outliers (flag = FALSE) appear far from the main cluster in the DD-plot
+  # (Score Distance vs Orthogonal Distance). Review before proceeding to DE.
+  #
+  # Arguments:
+  #   pca_list  Named list of ggplot objects from DEP::plot_pca() — one per imputation method
+  #   k         Number of robust PC components (default 5)
+  # -----------------------------------------------------------------------
   run_pca_hubert_analysis <- function(pca_list, k = 5) {
     all_outliers <- data.frame(Sample = pca_list[[1]]$data$rowname)
     results <- list()
@@ -742,12 +789,14 @@ specifically the impute function description for more information.'
   save(pca_results, file = paste0(output_path, "RData/pca_outliers_results.RData"))
 
 
-  # Differential Expression ####
-  # Function that wraps around test_diff, add_rejections and get_results functions
+  # Differential Expression — imputation method comparison ####
+  # Runs a quick limma-based DE test on each imputed dataset to compare how many
+  # significant proteins each method recovers. This is a diagnostic step only;
+  # the definitive DE analysis uses mixed_splited_imputation in 04_data_analysis.R.
   DE_analysis <- function(se) {
     se %>%
       test_diff(., type = "manual", test = comparisons) %>%
-      add_rejections(., alpha = p_val, lfc = log2(FC)) %>%
+      add_rejections(., alpha = p_val, lfc = log2(FC)) %>%  # FC is log2 here
       get_results()
   }
 

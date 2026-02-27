@@ -10,10 +10,26 @@ source("../code/00_packages.R")
 # load(paste0(output_path,"RData/data_imp_knn.RData"))
 # load(paste0(output_path,"RData/mixed_imputation.RData"))
 
+# data_analysis() -------------------------------------------------------
+# Differential enrichment analysis on the imputed SummarizedExperiment.
+# Uses protein-wise linear models with empirical Bayes moderation (limma),
+# wrapped by DEP::analyze_dep(). The model formula ~0 + condition fits a
+# cell-means parameterisation so that manual contrasts map directly to
+# biological comparisons without a reference level.
+#
+# Arguments:
+#   imputation_file  SummarizedExperiment from data_cleaning() — typically
+#                    mixed_splited_imputation
+#   Exp_design       Experimental design table (condition, columns_to_rename …)
+#   comparisons      Character vector of contrasts, e.g. "CTRL_vs_WT"
+#   output_path      Base output directory
+#
+# Exports to global env: data_results, sig_adjusted_data, significative_data,
+#   imputed_data_df, and one <comparison>_df per contrast.
+# -----------------------------------------------------------------------
 data_analysis <- function(imputation_file, Exp_design, comparisons, output_path){
-  create_directories(output_path) #Function from Globalvariables file to creates folder
-  
-  
+  create_directories(output_path) # create tables/, figures/, RData/ subdirs
+
   name_df <- deparse(substitute(imputation_file))
 # Differential Expression Analysis ####
 
@@ -29,15 +45,17 @@ or the generation of contrasts of every sample versus control
 to be tested (type = "manual"), which need to be specified in the
 argument test.'
 
-  # Differential enrichment analysis  based on linear models and empherical Bayes statistics
-  
-  # Test every sample versus control
+  # Fit limma model and test manual contrasts.
+  # type = "manual"  → contrasts are taken from the 'test' vector verbatim
+  # control = NULL   → no automatic control reference (handled by ~0 + condition)
+  # alpha / lfc      → BH-adjusted p-value and log2FC thresholds from global_variables.R
+  # design_formula   → cell-means model; each condition gets its own coefficient
     dep_analysis <- analyze_dep(imputation_file,
                                 type="manual",
-                                control=NULL, 
+                                control=NULL,
                                 alpha=p_val,
-                                lfc=FC, 
-                                test=comparisons ,
+                                lfc=FC,
+                                test=comparisons,
                                 design_formula=formula(~0+ condition))
     
   
@@ -51,21 +69,17 @@ argument test.'
   imputed_selected <- imputed_data_df[label_names]
   genenames <- imputed_selected$genename
   
+  # Attempt to attach MNAR metadata (frac_NA and MNAR_flag per condition)
+  # stored in the SummarizedExperiment by data_cleaning(). If the slot is
+  # absent (e.g. when using a non-mixed imputation object), the merge is
+  # skipped gracefully so downstream steps remain unaffected.
   imputed_selected <- tryCatch({
-    
-    # 1. pull out the MNAR‐metadata (may error if it's not there)
-    meta_df <- metadata(imputation_file)$proteins_MNAR %>% 
+    meta_df <- metadata(imputation_file)$proteins_MNAR %>%
       dplyr::filter(genename %in% genenames)
-    
-    # 2. merge it in
     merge(imputed_selected, meta_df, by = "genename", all = TRUE)
-    
   }, error = function(e) {
-    
-    # if anything went wrong, warn and return unaltered
-    warning("Skipping metadata merge (not available): ", e$message)
+    warning("Skipping MNAR metadata merge (not available): ", e$message)
     imputed_selected
-    
   })
   
   data_results <- merge(data_results, imputed_selected, by = "ID", all = TRUE)
@@ -78,10 +92,11 @@ argument test.'
   
 
   
-  # Add significance by comparison ####
-
-  # Create one column for each comparison were it is indicated if the protein is Up-regulated or Down-regulated. 
-  #Setting up dataframe
+  # Add per-comparison regulation labels ####
+  # For each contrast, add three columns:
+  #   <comparison>_diffexpressed  "UP" | "DOWN" | "NO"  (nominal p-value threshold)
+  #   <comparison>_dif_label      gene name if DE, NA otherwise (for volcano annotation)
+  # Thresholds: ratio > FC & p.val < p_val → "UP"; ratio < -FC & p.val < p_val → "DOWN"
   for (i in 1:length(comparisons)){
     diff_ <- paste(comparisons[i],"diffexpressed", sep="_")
     ratio <-paste(comparisons[i],"ratio", sep="_")
@@ -136,11 +151,14 @@ argument test.'
     mutate(significance = any(c_across(ends_with("_diffexpressed")) %in% c("UP", "DOWN"))) %>%
     ungroup()
   
+  # Composite score = log2FC × −log10(p-value).
+  # Combines effect size and significance into a single ranking metric,
+  # equivalent to the signed volcano distance from the origin.
   for (i in comparisons){
     ratio <- paste0(i,"_ratio")
     p.val <- paste0(i,"_p.val")
     score <- paste0(i, "_Score")
-    data_results <- data_results %>% 
+    data_results <- data_results %>%
       mutate(!!score := !!sym(ratio) * -log10(!!sym(p.val)))
   }
   
