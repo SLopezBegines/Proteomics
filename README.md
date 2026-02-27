@@ -6,34 +6,34 @@ A modular and reproducible R pipeline for label-free quantitative (LFQ) proteomi
 
 ## Pipeline Overview
 
-``` mermaid
+```mermaid
 flowchart TD
-    A["📥 MaxQuant output\nProteinGroups.txt / .xlsx"] --> B
+    A["📥 MaxQuant output · ProteinGroups.txt / .xlsx"] --> B
 
     subgraph QC ["1 · QC & Preprocessing"]
-        B["Load & standardise columns\nRemove contaminants"]
-        B --> C["Define experiment design\nconditions · replicates · contrasts"]
-        C --> D["Filter missing values\nfraction_NA threshold per condition"]
+        B["Load & standardise columns · Remove contaminants"]
+        B --> C["Define experiment design · conditions · replicates · contrasts"]
+        C --> D["Filter missing values · fraction_NA threshold per condition"]
         D --> E["VSN normalisation"]
-        E --> F["Mixed imputation\nMNAR → zero/MinProb/QRILC\nMAR  → kNN"]
+        E --> F["Mixed imputation · MNAR → zero/MinProb/QRILC · MAR → kNN"]
     end
 
     subgraph DE ["2 · Differential Expression"]
-        F --> G["limma · empirical Bayes\n~0 + condition · manual contrasts"]
-        G --> H["Log₂FC · p-value · BH-adjusted p\nUP / DOWN / NO per comparison"]
+        F --> G["limma · empirical Bayes · ~0 + condition · manual contrasts"]
+        G --> H["Log2FC · p-value · BH-adjusted p · UP / DOWN / NO per comparison"]
     end
 
     subgraph VIZ ["3 · Visualisation"]
-        H --> I["Volcano plots\nHeatmaps · PCA · UpSet"]
+        H --> I["Volcano plots · Heatmaps · PCA · UpSet"]
     end
 
     subgraph ENRICH ["4 · Functional Enrichment"]
-        H --> J["ORA  — enrichGO\nGSEA — gseGO · gseKEGG · pathview"]
-        H --> K["STRING PPI networks\nPANTHER · EnrichR"]
+        H --> J["ORA — enrichGO · GSEA — gseGO · gseKEGG · pathview"]
+        H --> K["STRING PPI networks · PANTHER · EnrichR"]
     end
 
     subgraph SUMM ["5 · Summary"]
-        I & J & K --> L["Statistics tables\nDE counts · effect sizes"]
+        I & J & K --> L["Statistics tables · DE counts · effect sizes"]
     end
 
     style QC fill:#e8f4f8,stroke:#2980b9
