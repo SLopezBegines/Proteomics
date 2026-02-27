@@ -176,7 +176,35 @@ The included `IP-CLN3_PXD031582.Rmd` analyzes a CLN3 lysosomal interactome datas
 
 This project is licensed under the GNU General Public License v3.0 — see [LICENSE](LICENSE).
 
+## Example Output
+
+The figures below are from the included CLN3 interactome analysis ([PXD031582](https://www.ebi.ac.uk/pride/archive/projects/PXD031582)).
+
+### Quality Control & Preprocessing
+
+| QC Overview | VSN Normalization |
+|:-----------:|:-----------------:|
+| ![QC overview](docs/images/05_QC_data_overview_prot_data.png) | ![Normalization](docs/images/06_Normalization_diagnosis.png) |
+
+| SD before vs after imputation | Imputation distribution |
+|:-----------------------------:|:-----------------------:|
+| ![SD scatter](docs/images/09_SD_before_after_scatter.png) | ![Imputation distribution](docs/images/10_protein_imputation_distribution.png) |
+
+### Dimensionality Reduction & Differential Expression
+
+| PCA — mixed imputation | Volcano KO vs WT |
+|:----------------------:|:----------------:|
+| ![PCA](docs/images/14_PCA_Splited_Mixed.png) | ![Volcano](docs/images/26_vulcano_DEP_KO_vs_WT.png) |
+
+### Clustering & Functional Enrichment
+
+| Heatmap (significant proteins) | GO Lolliplot — KO vs WT (UP) |
+|:------------------------------:|:----------------------------:|
+| ![Heatmap](docs/images/23_Heatmap_significant.png) | ![GO lolliplot](docs/images/76_Lolliplot_KO_vs_WT_UP.png) |
+
+---
+
 ## Author
 
-**Santiago López-Begines, PhD** — Neuroscientist & Data Scientist  
-[GitHub](https://github.com/SLopezBegines) · [LinkedIn](https://www.linkedin.com/in/santiago-lopez-begines/)
+**Santiago López-Begines, PhD** — Neuroscientist & Bioinformatics Scientist
+[Portfolio](https://slopezbegines.github.io/projects/proteomics/) · [GitHub](https://github.com/SLopezBegines) · [LinkedIn](https://www.linkedin.com/in/santiago-lopez-begines/)
