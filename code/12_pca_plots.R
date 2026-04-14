@@ -33,19 +33,10 @@ pca_res$group       <- c(rep("WT", 3), rep("CLN3_Lux1", 3), rep("CLN3_Lux2", 3),
 pca_res$repetition <- rep(c(rep("1", 1), rep("2", 1),rep("3", 1)), 4)
 #loadings by adj_p_value
 pca <- autoplot(pca_res, data = data_results, colour= 'significant',shape = TRUE)
-print(pca)
-filename <- paste0(output_path,"figures/",image_number+1,"_PCA_loadings_p_adj")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-ggsave(paste0(filename,pdf_extension), pca, width = 5, height = 5, units = "in")  # Vectorial format
-ggsave(paste0(filename,tiff_extension), pca, width = 5, height = 5, units = "in")  # Tiff format
-image_number <- image_number+1
+save_plot("PCA_loadings_p_adj", pca, width = 7, height = 7)
 #loadings by p_value
 pca <- autoplot(pca_res, data = data_results, colour= 'significance',shape = TRUE)
-print(pca)
-filename <- paste0(output_path,"figures/",image_number+1,"_PCA_loadings_p_adj")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-ggsave(paste0(filename,pdf_extension), pca, width = 5, height = 5, units = "in")  # Vectorial format
-ggsave(paste0(filename,tiff_extension), pca, width = 5, height = 5, units = "in")  # Tiff format
-image_number <- image_number+1
-
+save_plot("PCA_loadings_p_val", pca, width = 7, height = 7)
 
 autoplot(pca_res,data = data_results, colour= 'group',
          loadings = TRUE, loadings.colour = pca_res$group,

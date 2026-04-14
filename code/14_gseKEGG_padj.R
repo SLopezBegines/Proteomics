@@ -154,18 +154,14 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
     ggtitle(paste("Plot for", plot_name))
   
   if (!is.null(file_prefix)) {
-    tiff_filename <- paste0(file_prefix, "_", gsub(" ", "_", plot_name), ".tiff")
-    pdf_filename <- paste0(file_prefix, "_", gsub(" ", "_", plot_name), ".pdf")
-    ggsave(filename = tiff_filename, plot = plot, device = "tiff")
-    ggsave(filename = pdf_filename, plot = plot, device = "pdf")
-  }
-  print(plot)
+    save_plot(paste0(file_prefix, "_", gsub(" ", "_", plot_name), plot, width = 7, height = 7)
+    }
   return(plot) 
 }
 
 # Apply lolliplot function
 for (i in seq_along(results_df_gseKEGG_ALL)) {
-  lolliplot_result <- lolliplot(i, results_df_gseKEGG_ALL, file_prefix = paste0(output_path,"figures/KEGG_GO_adj/Lolliplot_0",i))
+  lolliplot_result <- lolliplot(i, results_df_gseKEGG_ALL, file_prefix = paste0(output_path,"figures/KEGG_GO_adj/Lolliplot",i))
 }
 
 

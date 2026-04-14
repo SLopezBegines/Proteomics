@@ -130,12 +130,9 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
     ggtitle(paste("Plot for", plot_name))
   
   if (!is.null(file_prefix)) {
-    tiff_filename <- paste0(file_prefix, "_", gsub(" ", "_", plot_name), ".tiff")
-    pdf_filename <- paste0(file_prefix, "_", gsub(" ", "_", plot_name), ".pdf")
-    ggsave(filename = tiff_filename, plot = plot, device = "tiff")
-    ggsave(filename = pdf_filename, plot = plot, device = "pdf")
-  }
-  print(plot)
+    
+    save_plot(paste0(file_prefix, "_", gsub(" ", "_", plot_name), plot, width = 7, height = 7)
+    }
   return(plot) 
 }
 

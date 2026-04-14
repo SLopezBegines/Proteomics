@@ -42,11 +42,12 @@ organism <- "org.Hs.eg.db"
 
 
 # --- Output Configuration ---
-output_path <- "./output/IP_CLN3_PXD031582/"
+output_path <- "output/IP_CLN3_PXD031582/"
 image_number <- 1  # Sequential counter for figure numbering
 
 # Load global thresholds (p_val, FC) and helper functions (create_directories)
 source("../code/global_variables.R")
+source("../code/aux_functions.R")
 ```
 
 ## Loading Pipeline Functions
@@ -173,7 +174,7 @@ Generate publication-ready plots from the differential expression results:
 All figures are exported in dual format (TIFF for publication, PDF for vector editing) with sequential numbering.
 
 ```{r plots, fig.width=10, fig.height=8}
-print_barplots <- 0  # Set to 1 to generate individual protein barplots (slow for large datasets)
+print_barplots <- 1  # Set to 1 to generate individual protein barplots (slow for large datasets)
 
 source("../code/05_Plots.R")
 ```

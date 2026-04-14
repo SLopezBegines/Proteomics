@@ -18,11 +18,7 @@ sig_adjusted_data <- readxl::read_xlsx(path = paste0(output_path,"tables/sig_adj
 # Plots ####
 ## PCA plot ####
 p <- plot_pca(dep_analysis,x = 2, y = 1, n = (length(dep_analysis)), point_size = 4)
-print(p)
-filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_PCA")# Name of output file. 
-ggsave(paste0(filename,tiff_extension), p, width = 8, height = 6, units = "in")  # Adjust size according to your needs.
-ggsave(paste0(filename,pdf_extension), p, width = 8, height = 6, units = "in")  
-image_number <<- image_number + 1
+save_plot("PCA", p, width = 8, height = 6)
 
 ## PCA plot loadings ####
 # get LFQ column numbers
@@ -40,27 +36,18 @@ pca_res <- stats::prcomp(pca_matrix, scale. = FALSE)
 pca_res$repetition <- rep(c(rep("1", 1), rep("2", 1),rep("3", 1),rep("4", 1)), 4)
 
 #loadings by adj_p_value
-pca <- autoplot(pca_res, data = data_results, colour= "significant",shape = TRUE, 
+pca_loadings <- autoplot(pca_res, data = data_results, colour= "significant",shape = TRUE, 
                 label = FALSE, label.size = 3,
                 loadings = FALSE, loadings.colour = "blue",
                 loadings.label = TRUE, loadings.label.size = 3, frame = FALSE, frame.type = "norm")
-print(pca)
-filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_PCA_loadings_p_adj")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-ggsave(paste0(filename,pdf_extension), pca, width = 5, height = 5, units = "in")  # Vectorial format
-ggsave(paste0(filename,tiff_extension), pca, width = 5, height = 5, units = "in")  # Tiff format
-image_number <<- image_number + 1
+save_plot("PCA_loadings_p_adj", pca_loadings, width = 8, height = 6)
+
 #loadings by p_value
-pca <- autoplot(pca_res, data = data_results, colour= "significance",shape = TRUE, 
+pca_loadings <- autoplot(pca_res, data = data_results, colour= "significance",shape = TRUE, 
                 label = FALSE, label.size = 3,
                 loadings = FALSE, loadings.colour = "blue",
                 loadings.label = TRUE, loadings.label.size = 3, frame = FALSE, frame.type = "norm")
-print(pca)
-filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_PCA_loadings_p_value")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-ggsave(paste0(filename,pdf_extension), pca, width = 5, height = 5, units = "in")  # Vectorial format
-ggsave(paste0(filename,tiff_extension), pca, width = 5, height = 5, units = "in")  # Tiff format
-image_number <<- image_number + 1
-
-
+save_plot("PCA_loadings_p_value", pca_loadings, width = 8, height = 6)
 
 ## Heatmaps ####
 ### Correlation matrix ####
@@ -75,7 +62,8 @@ dev.off()
 tiff(file = paste0(filename, tiff_extension)) # The height of the plot in inches
 print(p)
 dev.off()
-image_number <<- image_number + 1
+# Incrementar contador global
+assign("image_number", image_number + 1, envir = .GlobalEnv)
 ### HeatMap ####
 filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_Heatmap_significant")# Name of output file.
 pdf(file = paste0(filename,pdf_extension)) 
@@ -87,19 +75,16 @@ dev.off()
 tiff(file = paste0(filename,tiff_extension)) # The height of the plot in inches
 print(p)
 dev.off()
-image_number <<- image_number + 1
+# Incrementar contador global
+assign("image_number", image_number + 1, envir = .GlobalEnv)
 ## Vulcano Plots ####
 ### DEP package #### 
 # Plot a volcano plot for the contrast of each comparison
 
 for(i in 1:length(comparisons)){
   vulcano<- plot_volcano(dep_analysis, contrast = comparisons[i], label_size = 3, add_names = TRUE, adjusted = FALSE)
-  plot(vulcano)
-  
-  filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_vulcano_DEP_",comparisons[i])  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-  ggsave(paste0(filename,pdf_extension), vulcano, width = 8, height = 6, units = "in")  # Ajusta el tamaño y las unidades según tus necesidades
-  ggsave(paste0(filename,tiff_extension), vulcano, width = 8, height = 6, units = "in")  # Ajusta el tamaño y las unidades según tus necesidades
-  image_number <<- image_number + 1
+  filename <- paste0("vulcano_DEP_",comparisons[i])  # Output file name (you can change the extension to match the desired format)
+  save_plot(filename, vulcano, width = 8, height = 6)
 }
 
 
@@ -137,12 +122,8 @@ for (i in 1:length(comparisons)){
                                  guides(colour = FALSE)  # Remove the legend for color
   ) 
   
-  print(vulcanogg)
-  
-  filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_vulcano_ggplot_",comparisons[i])  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-  ggsave(paste0(filename,pdf_extension), vulcanogg, width = 8, height = 6, units = "in")  # Vectorial format
-  ggsave(paste0(filename,tiff_extension), vulcanogg, width = 8, height = 6, units = "in")  # Tiff format
-  image_number <<- image_number + 1
+  filename <- paste0("vulcano_ggplot_",comparisons[i])  # Output file name (you can change the extension to match the desired format)
+  save_plot(filename, vulcanogg, width = 8, height = 6)
 }
 
 ## Barplots ####
@@ -162,13 +143,7 @@ for (j in 1:(length(expressed)/ number)){
   
   group <- expressed[start:end]
   singleplot <-plot_single(dep_analysis, proteins = group, type="centered") #+ ggtitle(comparisons[i])
-  p<-print(singleplot)
-  print(p)
-  
-  filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_enriched_protein")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-  ggsave(paste0(filename,pdf_extension), p, width = 8, height = 6, units = "in")  # Vectorial format
-  ggsave(paste0(filename,tiff_extension), p, width = 8, height = 6, units = "in")  # Tiff format
-  image_number <<- image_number + 1
+  save_plot("enriched_protein_barplot", p, width = 8, height = 6)
 }
 ### p_value Significant ####
 #image_number <- 23
@@ -184,12 +159,7 @@ for (j in 1:(length(expressed)/ number)){
   group <- expressed[start:end]
   singleplot <-plot_single(dep_analysis, proteins = group, type="centered") #+ ggtitle(comparisons[i])
   p<-print(singleplot)
-  print(p)
-  
-  filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_enriched_protein_pvalue")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-  ggsave(paste0(filename,pdf_extension), p, width = 8, height = 8, units = "in")  # Vectorial format
-  ggsave(paste0(filename,tiff_extension), p, width = 8, height = 8, units = "in")  # Tiff format
-  image_number <<- image_number + 1
+  save_plot("enriched_protein_barplot_p_value", p, width = 8, height = 6)
 }
   }
 
@@ -203,26 +173,22 @@ if(length(comparisons)==1){
   print("No combinations possible. Only one comparison")
 }else{
 combinations <- combn(ratio_columns, 2)
-# Generar gráfico por cada combinación
+# Generate plot for each combination
 for (i in 1:ncol(combinations)) {
   x <- combinations[1, i]
   y <- combinations[2, i]
   
-  # Crear el gráfico
+  # Create the plot
   plot_title <- paste(ratio_columns[which(ratio_columns == x)], "vs", ratio_columns[which(ratio_columns == y)])
   p <- ggplot(data_results, aes_string(x = x, y = y)) +
     geom_point(shape = 21, fill = "white", size = 2) +
     geom_text_repel(max.overlaps = 15, aes(label = name)) + 
     #geom_mark_hull(aes(fill=affinity),concavity = 2.8)+ #Refine it. Draw only the groups that are being drawn
-    labs(title = plot_title, x = ratio_columns[which(ratio_columns == x)], y = ratio_columns[which(ratio_columns == y)])  # Convertir los nombres en símbolos
+    labs(title = plot_title, x = ratio_columns[which(ratio_columns == x)], y = ratio_columns[which(ratio_columns == y)])  # Convert names to symbols
   
-  # Mostrar el gráfico
-  print(p)
-  filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_FC_correlation",x,"_",y)  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-  ggsave(paste0(filename,pdf_extension), p, width = 8, height = 8, units = "in")  # Vectorial format
-  ggsave(paste0(filename,tiff_extension), p, width = 8, height = 8, units = "in")  # Tiff format
-  image_number <<- image_number + 1
-}
+  # Save plot
+  save_plot("FC_correlation", p, width = 8, height = 6)
+  }
 }
 
 #image_number <- 35
@@ -262,14 +228,7 @@ heatmap_adj <- pheatmap::pheatmap(heatmap_matrix_padj, cutree_rows = 4,
                                   main = "Fold-change ratio adjusted-pvalue",
                                   display_numbers = TRUE
 )
-filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_HeatMap_padj")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-ggsave(paste0(filename,pdf_extension), heatmap_adj, width = 4, height = 18, units = "in")  # Vectorial format
-ggsave(paste0(filename,tiff_extension), heatmap_adj, width = 4, height = 18, units = "in")  # Tiff format
-
-image_number <<- image_number + 1
-
-
-
+save_plot("HeatMap_padj", heatmap_adj, width = 4, height = 18)
 
 ### HeatMap pval ####
 
@@ -302,11 +261,7 @@ heatmap_pval <- pheatmap::pheatmap(heatmap_matrix ,
                                    display_numbers = TRUE
 )
 
-filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_HeatMap_ratio")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-ggsave(paste0(filename,pdf_extension), heatmap_pval, width = 4, height = 18, units = "in")  # Vectorial format
-ggsave(paste0(filename,tiff_extension), heatmap_pval, width = 4, height = 18, units = "in")  # Tiff format
-image_number <<- image_number + 1
-
+save_plot("HeatMap_ratio", heatmap_pval, width = 4, height = 18)
 
 ### HeatMap pval excluded####
 heatmap_df <- data_results %>% 
@@ -361,11 +316,8 @@ heatmap_pval <- pheatmap::pheatmap(heatmap_matrix_exclude,
                                    labels_row = heatmap_df$name  # Add gene names to y-axis
 )
 
-filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_HeatMap_ratio_excluded")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-ggsave(paste0(filename,pdf_extension), heatmap_pval, width = 4, height = 18, units = "in")  # Vectorial format
-ggsave(paste0(filename,tiff_extension), heatmap_pval, width = 4, height = 18, units = "in")  # Tiff format
-image_number <<- image_number + 1
-#image_number <- 10
+save_plot("HeatMap_ratio_excluded", heatmap_pval, width = 4, height = 18)
+
 ## By Log2 Intensity ####
 
 ### Log2 Intensity significant####
@@ -401,14 +353,7 @@ heatmap_int <- pheatmap::pheatmap(heatmap_matrix_intensity,
                                   #color = my_color_palette
 )
 
-
-filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_HeatMap_intensity_padj")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-ggsave(paste0(filename,pdf_extension), heatmap_int, width = 6, height = 18, units = "in")  # Vectorial format
-ggsave(paste0(filename,tiff_extension), heatmap_int, width = 6, height = 18, units = "in")  # Tiff format
-image_number <<- image_number + 1
-
-
-
+save_plot("HeatMap_intensity_padj", heatmap_int, width = 4, height = 18)
 
 ### Log2 Intensity ####
 heatmap_intensity <- data_results %>% 
@@ -442,14 +387,7 @@ heatmap_int <- pheatmap::pheatmap(heatmap_matrix_intensity, cutree_rows = 6, row
                                   #labels_row = heatmap_intensity$name,
 )
 
-
-filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_HeatMap_intensity")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-ggsave(paste0(filename,pdf_extension), heatmap_int, width = 6, height = 18, units = "in")  # Vectorial format
-ggsave(paste0(filename,tiff_extension), heatmap_int, width = 6, height = 18, units = "in")  # Tiff format
-image_number <<- image_number + 1
-
-
-
+save_plot("HeatMap_intensity", heatmap_int, width = 6, height = 18)
 
 ### Log2 Intensity Excluded ####
 heatmap_intensity <- data_results %>% 
@@ -510,17 +448,4 @@ heatmap_int <- pheatmap::pheatmap(heatmap_matrix_exclude_int_2, cutree_rows = 4,
                                   #color = my_color_palette
 )
 
-
-filename <- paste0(output_path,"figures/", sprintf("%02d", image_number), "_HeatMap_intensity_excluded")  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-ggsave(paste0(filename,pdf_extension), heatmap_int, width = 6, height = 10, units = "in")  # Vectorial format
-ggsave(paste0(filename,tiff_extension), heatmap_int, width = 6, height = 10, units = "in")  # Tiff format
-image_number <<- image_number + 1
-
-
-
-## 
-
-
-
-
-
+save_plot("HeatMap_intensity_excluded", heatmap_int, width = 6, height = 10)

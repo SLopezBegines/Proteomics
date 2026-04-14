@@ -117,13 +117,13 @@ tool <- tool_type[8]
 
 
 
-# Función corregida para obtener resultados desde DAVID API
+# Corrected function to retrieve results from DAVID API
 getDAVIDResults <- function(gene_list, user, idType = "OFFICIAL_GENE_SYMBOL", 
                             annotation = "GOTERM_BP_DIRECT", species = "Homo sapiens") {
   # URL de la API DAVID
   url <- "https://david.ncifcrf.gov/api.jsp"
   
-  # Parámetros para la consulta POST incluyendo la clave de usuario DAVID
+  # Parameters for the POST query including the DAVID user key
   params <- list(
     type = idType,
     ids = paste(gene_list, collapse = ","),
@@ -132,10 +132,10 @@ getDAVIDResults <- function(gene_list, user, idType = "OFFICIAL_GENE_SYMBOL",
     user = user
   )
   
-  # Realizar la solicitud POST
+  # Send the POST request
   response <- POST(url, body = params, encode = "form")
   
-  # Verificar la respuesta del servidor
+  # Check the server response
   if (status_code(response) == 200) {
     content_text <- content(response, "text", encoding = "UTF-8")
     if (nchar(content_text) == 0) {

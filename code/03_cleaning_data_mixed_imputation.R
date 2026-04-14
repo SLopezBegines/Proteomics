@@ -68,11 +68,8 @@ data_cleaning <- function(prot_data, # input dataset
 
   # Plot a barplot of the protein identification overlap between samples
   p1 <- plot_frequency(data_se)
-  print(p1)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_protein_identification_overlap_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), p1, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), p1, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
+  save_plot("protein_identification_overlap", p1, width = 8, height = 8)
+
   "This leaves our dataset with missing values, which need to be imputed.
 However, this should not be done for proteins that contain too many
 missing values. Therefore, we first filter out proteins that contain too
@@ -89,17 +86,12 @@ allowed number of missing values per condition in the filter_missvalfunction."
 plotted as well as the overlap in identifications between samples.
 "
   p2 <- plot_numbers(data_filt)
-  print(p2)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_protein_per_sample_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), p2, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), p2, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
+  save_plot("protein_per_sample", p2, width = 8, height = 8)
+  
+  
   p3 <- plot_coverage(data_filt)
-  print(p3)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_protein_coverage_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), p3, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), p3, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
+  save_plot("protein_coverage", p3, width = 8, height = 8)
+  
   # Normalization ####
   # The data is background corrected and normalized by variance stabilizing transformation (vsn).
   # Normalize the data
@@ -110,12 +102,8 @@ plotted as well as the overlap in identifications between samples.
   print(p)
 
   p4 <- plot_normalization(data_filt, data_norm)
-  print(p4)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_normalized_data_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), p4, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), p4, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
-
+  save_plot("normalized_data", p4, width = 8, height = 8)
+  
 
   p <- p1 + p2 + p3 + p4 + plot_layout(ncol = 2) + plot_annotation(
     title = "Data overview",
@@ -123,13 +111,9 @@ plotted as well as the overlap in identifications between samples.
     caption = "Figures generated with the DEP package",
     tag_levels = "A"
   )
-  print(p)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_QC_data_overview_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), p, width = 16, height = 12, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), p, width = 16, height = 12, units = "in")
-  image_number <<- image_number + 1
-
-  "The normalization can be assessed by plotting the standard deviation
+  save_plot("QC_data_overview", p, width = 16, height = 12)
+  
+   "The normalization can be assessed by plotting the standard deviation
 versus the mean intensity for each protein before and after normalization.
 Additionally, a PCA plot can be used to assess whether the replicates
 cluster together and whether there are any outliers. Both plots should
@@ -145,18 +129,18 @@ normalization."
     # Remove "/" in output_path
 
     output_path_short <- gsub("/$", "", output_path)
-    # Extraer matrices de expresión
+    # Extract expression matrices
     mat_raw <- assay(se_raw)
     mat_norm <- assay(se_norm)
 
-    # Eliminar filas con NA para PCA (pero no para meanSdPlot)
+    # Remove rows with NA for PCA (but not for meanSdPlot)
     mat_raw_pca <- mat_raw[complete.cases(mat_raw), ]
     mat_norm_pca <- mat_norm[complete.cases(mat_norm), ]
 
-    # Extraer metadatos
+    # Extract metadata
     meta <- as.data.frame(colData(se_raw))
 
-    # PCA antes de normalización
+    # PCA before normalisation
     pca_raw <- prcomp(t(mat_raw_pca), scale. = TRUE)
     pca_raw_df <- as.data.frame(pca_raw$x[, 1:2])
     pca_raw_df$condition <- meta$condition
@@ -168,7 +152,7 @@ normalization."
       theme_minimal() +
       theme(legend.position = "right")
 
-    # PCA después de normalización
+    # PCA after normalisation
     pca_norm <- prcomp(t(mat_norm_pca), scale. = TRUE)
     pca_norm_df <- as.data.frame(pca_norm$x[, 1:2])
     pca_norm_df$condition <- meta$condition
@@ -180,7 +164,7 @@ normalization."
       theme_minimal() +
       theme(legend.position = "right")
 
-    # meanSdPlot antes (usando px/py)
+    # meanSdPlot before (using px/py)
     mean_sd_raw_obj <- DEP::meanSdPlot(mat_raw, plot = FALSE)
     mean_sd_raw_data <- mean_sd_raw_obj$gg$data
     colnames(mean_sd_raw_data) <- c("x", "y") # px → x, py → y
@@ -191,7 +175,7 @@ normalization."
       labs(title = "meanSdPlot - Before VSN", x = "rank(mean)", y = "SD") +
       theme_minimal()
 
-    # meanSdPlot después
+    # meanSdPlot after
     mean_sd_norm_obj <- DEP::meanSdPlot(mat_norm, plot = FALSE)
     mean_sd_norm_data <- mean_sd_norm_obj$gg$data
     colnames(mean_sd_norm_data) <- c("x", "y")
@@ -208,11 +192,7 @@ normalization."
     print(final_plot)
     # Guardar si se especifica output_path
     if (!is.null(output_path)) {
-      pdf_file <- file.path(output_path_short, "figures", paste0(sprintf("%02d", image_number), "_", file_prefix, ".pdf"))
-      tiff_file <- file.path(output_path_short, "figures", paste0(sprintf("%02d", image_number), "_", file_prefix, ".tiff"))
-
-      ggsave(pdf_file, final_plot, width = 12, height = 10)
-      ggsave(tiff_file, final_plot, width = 12, height = 10, dpi = 300)
+      save_plot(file_prefix, p, width = 12, height = 10)
       message("✅ Graph stored in ", output_path)
     }
 
@@ -229,7 +209,6 @@ normalization."
     output_path = output_path,
     file_prefix = "Normalization_diagnosis"
   )
-  image_number <<- image_number + 1
   # Imputation of missing values ####
   " The remaining missing values in the dataset need to be imputed. The data
 can be missing at random (MAR), for example if proteins are quantified
@@ -261,7 +240,10 @@ proteins with at least one missing value are visualized. "
   # Step 3: Run dev.off() to create the file!
   dev.off()
   print(p)
-  image_number <<- image_number + 1
+  
+  # Incrementar contador global
+  assign("image_number", image_number + 1, envir = .GlobalEnv)
+  
   "This heatmap indicates that missing values are highly biased to specific
 samples. To check whether missing values are biased to lower intense proteins, the densities and
 cumulative fractions are plotted for proteins with and without missing
@@ -269,11 +251,8 @@ values."
 
   # Plot intensity distributions and cumulative fraction of proteins with and without missing values
   p <- plot_detect(data_filt)
-  print(p)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_protein_imputation_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), p, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), p, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
+  save_plot("protein_imputation", p, width = 8, height = 6)
+  
   'Indeed the proteins with missing values have on average low intensities.
 This data (MNAR and close to the detection limit) should be imputed by a
 left-censored imputation method, such as the quantile regression-based
@@ -562,17 +541,8 @@ specifically the impute function description for more information.'
         y     = "SD after"
       ) +
       theme_minimal()
-    print(p1)
-
-    # save scatter plot
-    dir.create(file.path(output_path, "figures"), recursive = TRUE, showWarnings = FALSE)
-    base1 <- file.path(
-      output_path, "figures",
-      sprintf("%02d_SD_before_after_scatter", image_number)
-    )
-    ggsave(paste0(base1, tiff_extension), p1, width = 8, height = 6)
-    ggsave(paste0(base1, pdf_extension), p1, width = 8, height = 6)
-    image_number <<- image_number + 1
+    
+    save_plot("%02d_SD_before_after_scatter", p1, width = 8, height = 6)
   }
 
   # Example usage:
@@ -617,11 +587,8 @@ specifically the impute function description for more information.'
 
   # Visualization of imputation effect
   p <- plot_imputation(data_norm, data_imp, data_imp_man_gauss, data_imp_knn, manual_imputation, mixed_splited_imputation, data_imp_QRILC)
-  print(p)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_protein_imputation_distribution_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), p, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), p, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
+  save_plot("protein_imputation_distribution", p, width = 8, height = 6)
+  
   # For our dataset, knn and mixed imputation result in less identified differential expressed proteins compared to the no imputation and MinProb. No imputation results in the identification of the most differentially expressed proteins in our dataset with many proteins missing values.
   # Note that the performance of the different imputation methods is data set-dependent. It is recommended to always carefully check the effect of filtering and data imputation on your results.
 
@@ -637,51 +604,28 @@ specifically the impute function description for more information.'
 
   # PCA MinProb
   pca_minprob <- plot_pca(dep_analysis_min, x = 2, y = 1, n = (length(dep_analysis_min)), point_size = 4) + ggtitle("PCA MinProb", subtitle = paste0(length(dep_analysis_min), " variable proteins"))
-  print(pca_minprob)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_PCA_MinProb_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), pca_minprob, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), pca_minprob, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
-
+  save_plot("PCA_MinProb", pca_minprob, width = 8, height = 6)
+  
   # PCA Manual
   pca_manual_gauss <- plot_pca(dep_analysis_manual_gauss, x = 2, y = 1, n = (length(dep_analysis_manual_gauss)), point_size = 4) + ggtitle("PCA Manual", subtitle = paste0(length(dep_analysis_manual_gauss), " variable proteins"))
-  print(pca_manual_gauss)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_PCA_Manual_Gauss", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), pca_manual_gauss, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), pca_manual_gauss, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
-
+  save_plot("PCA_Manual_Gauss", pca_manual_gauss, width = 8, height = 6)
+  
   # PCA KNN
   pca_knn <- plot_pca(dep_analysis_knn, x = 2, y = 1, n = (length(dep_analysis_knn)), point_size = 4) + ggtitle("PCA KNN", subtitle = paste0(length(dep_analysis_knn), " variable proteins"))
-  print(pca_knn)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_PCA_KNN_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), pca_knn, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), pca_knn, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
-
+  save_plot("PCA_KNN", pca_knn, width = 8, height = 6)
+  
   # PCA Mixed Splited
   pca_mixed_splited <- plot_pca(dep_analysis_mixed_splited, x = 2, y = 1, n = (length(dep_analysis_mixed_splited)), point_size = 4) + ggtitle("PCA Mixed Splited Imputation", subtitle = paste0(length(dep_analysis_mixed_splited), " variable proteins"))
-  print(pca_mixed_splited)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_PCA_Splited_Mixed_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), pca_mixed_splited, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), pca_mixed_splited, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
-
+  save_plot("PCA_Splited_Mixed", pca_mixed_splited, width = 8, height = 6)
+  
   # PCA manual_imputation
   pca_manual_value <- plot_pca(dep_analysis_manual_value, x = 2, y = 1, n = (length(dep_analysis_manual_value)), point_size = 4) + ggtitle("PCA Manual Imputation", subtitle = paste0(length(dep_analysis_manual_value), " variable proteins"))
-  print(pca_manual_value)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_PCA_manual_imputation_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), pca_manual_value, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), pca_manual_value, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
-
+  save_plot("PCA_manual_imputation", pca_manual_value, width = 8, height = 6)
+  
   # PCA QRILC
   pca_QRILC <- plot_pca(dep_analysis_QRILC, x = 2, y = 1, n = (length(dep_analysis_QRILC)), point_size = 4) + ggtitle("PCA QRILC", subtitle = paste0(length(dep_analysis_QRILC), " variable proteins"))
-  print(pca_QRILC)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_PCA_QRILC_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), pca_QRILC, width = 8, height = 6, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), pca_QRILC, width = 8, height = 6, units = "in")
-  image_number <<- image_number + 1
+  save_plot("PCA_QRILC", pca_QRILC, width = 8, height = 6)
+  
   # Patchwork of PCA plots
   pca_combined <- (pca_minprob | pca_manual_gauss) / (pca_manual_value | pca_QRILC) / (pca_knn | pca_mixed_splited) +
     plot_annotation(
@@ -690,13 +634,8 @@ specifically the impute function description for more information.'
       theme = theme(plot.title = element_text(size = 16, hjust = 0.5)),
       tag_levels = "A"
     )
-  print(pca_combined)
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_PCA_imputation_methods_", name_df) # Name of output file.
-  ggsave(paste0(filename, tiff_extension), pca_combined, width = 12, height = 18, units = "in") # Adjust size according to your needs.
-  ggsave(paste0(filename, pdf_extension), pca_combined, width = 12, height = 18, units = "in")
-  image_number <<- image_number + 1
-
-
+  save_plot("PCA_imputation_methods", pca_combined, width = 8, height = 6)
+  
   # run_pca_hubert_analysis() ---------------------------------------------
   # Outlier detection using robust PCA (PCAHubert, rrcov package).
   # Classical PCA is sensitive to outliers; PCAHubert minimises their influence
@@ -724,12 +663,12 @@ specifically the impute function description for more information.'
         Outlier = !robust_pca@flag
       )
 
-      # Añadir al dataframe consolidado
+      # Append to consolidated dataframe
       all_outliers <- all_outliers %>%
         left_join(distances_df %>% select(Sample, Outlier), by = "Sample") %>%
         rename(!!paste0("Outlier_", pca_name) := Outlier)
 
-      # Generar gráfico y almacenarlo
+      # Generate plot and store it
       plot_df <- distances_df
       p <- ggplot(plot_df, aes(x = Score_Distance, y = Orthogonal_Distance, label = Sample)) +
         geom_point(aes(color = Outlier), size = 3) +
@@ -754,14 +693,7 @@ specifically the impute function description for more information.'
       combined_plot <- wrap_plots(plots, ncol = 2) # Adjust ncol as needed
 
       # Save combined plot
-      filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_Combined_DD_Plots")
-      ggsave(paste0(filename, ".tiff"), combined_plot, width = 16, height = 12, units = "in")
-      ggsave(paste0(filename, ".pdf"), combined_plot, width = 16, height = 12, units = "in")
-
-      # Print combined plot
-      print(combined_plot)
-
-      image_number <<- image_number + 1
+      save_plot("Combined_DD_Plots", combined_plot, width = 8, height = 6)
     }
 
     # Guardar tabla consolidada de outliers

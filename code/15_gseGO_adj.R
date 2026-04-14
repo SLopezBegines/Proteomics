@@ -150,13 +150,13 @@ for (i in seq_along(dotplot_results)) {
     
     p <- dotplot_results[[i]] +
       ggplot2::ggtitle(paste0("Dot plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path,"figures/gseGO_adj/",image_number +i,"_GSE_Dotplot_", plot_name_hyphen)  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename,pdf_extension), p, width = 8, height = 8, dpi= 300, units = "in")  # Vectorial format
-    ggsave(paste0(filename,tiff_extension), p, width = 8, height = 8, dpi= 300, units = "in")  # Tiff format
-  }
+    save_plot(paste0("GSE_adj_dotplot", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_dir, "figures", "gseGO_adj"), 
+              width = 7, 
+              height = 7)
+    }
 }
-image_number <- image_number +i
 
 ### CNET plot ####
 '
@@ -174,7 +174,7 @@ for (i in seq_along(cnetplot_results)) {
     p <- cnetplot_results[[i]]+
       ggplot2::ggtitle(paste0("CNET plot for ", plot_name))
     print(p)
-    filename <- paste0(output_path,"figures/gseGO/",image_number+i,"_GSE_cnet_", plot_name_hyphen)  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
+    filename <- paste0(output_path,"figures/gseGO/",image_number+i,"_GSE_cnet_", plot_name_hyphen)  # Output file name (you can change the extension to match the desired format)
     ggsave(paste0(filename,pdf_extension), p, width = 8, height = 8, dpi= 300, units = "in")  # Vectorial format
     ggsave(paste0(filename,tiff_extension), p, width = 8, height = 8, dpi= 300, units = "in")  # Tiff format
   }
@@ -198,13 +198,13 @@ for (i in seq_along(heatmapplot_results)) {
     
     p <- heatmapplot_results[[i]]+
       ggplot2::ggtitle(paste0("HeatMap plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path,"figures/gseGO_adj/",image_number+i,"_GSE_heatmap_", plot_name_hyphen)  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename,pdf_extension), p, width = 8, height = 8, units = "in", dpi = 300)  # Vectorial format
-    ggsave(paste0(filename,tiff_extension), p, width = 8, height = 8, units = "in", dpi = 300)  # Tiff format
-  }
+    save_plot(paste0("GSE_adj_heatmap", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_dir, "figures", "gseGO_adj"), 
+              width = 7, 
+              height = 7)
+    }
 }
-image_number <- image_number+i
 
 ### Ridge plot ####
 ridgeplot_results <- lapply(results_list_gseGO_ALL_adj, perform_ridgeplots)
@@ -220,13 +220,13 @@ for (i in seq_along(ridgeplot_results)) {
     
     p <- ridgeplot_results[[i]]+
       ggplot2::ggtitle(paste0("Ridge plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path,"figures/gseGO_adj/",image_number+i,"_GSE_ridgeplot_", plot_name_hyphen)  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename,pdf_extension), p, width = 8, height = 8, units = "in", dpi = 300)  # Vectorial format
-    ggsave(paste0(filename,tiff_extension), p, width = 8, height = 8, units = "in", dpi = 300)  # Tiff format
-  }
+    save_plot(paste0("GSE_adj_ridgeplot", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_dir, "figures", "gseGO_adj"), 
+              width = 7, 
+              height = 7)
+    }
 }
-image_number <- image_number+i
 
 ### PMCplot ####
 # Number of articles in pubmed with the input ges descriptions
@@ -243,14 +243,13 @@ for (i in seq_along(pmcplot_results)) {
     
     p <- pmcplot_results[[i]]+
       ggplot2::ggtitle(paste0("PMC plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path,"figures/gseGO_adj/",image_number+i,"_GSE_pmcplot_", plot_name_hyphen)  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename,pdf_extension), p, width = 8, height = 8, units = "in", dpi = 300)  # Vectorial format
-    ggsave(paste0(filename,tiff_extension), p, width = 8, height = 8, units = "in", dpi = 300)  # Tiff format
-  }
+    save_plot(paste0("GSE_adj_pcmplot", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_dir, "figures", "gseGO_adj"), 
+              width = 7, 
+              height = 7)
+    }
 }
-image_number <- image_number+i
-
 ## Lolliplots ####
 
 # Make dataframe list from GO results #
@@ -302,10 +301,11 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
     ggtitle(paste("Plot for", plot_name))
   
   if (!is.null(file_prefix)) {
-    tiff_filename <- paste0(file_prefix, image_number+i,"_Lolliplot","_", gsub(" ", "_", plot_name), ".tiff")
-    pdf_filename <- paste0(file_prefix, image_number+i,"_Lolliplot","_", gsub(" ", "_", plot_name), ".pdf")
-    ggsave(filename = tiff_filename, plot = plot, device = "tiff")
-    ggsave(filename = pdf_filename, plot = plot, device = "pdf")
+    save_plot(paste0("GSE_lolliplot_", plot_name_hyphen), 
+              plot, 
+              output_dir = file.path(output_dir, "figures", "gseGO_adj"), 
+              width = 7, 
+              height = 7)
   }
   print(plot)
   return(plot) 

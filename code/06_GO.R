@@ -171,13 +171,13 @@ for (i in seq_along(barplot_results)) {
 
     p <- barplot_results[[i]] +
       ggplot2::ggtitle(paste0("Bar plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path, "figures/enrichGO/", image_number + i, "_barplot_", plot_name_hyphen) # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename, pdf_extension), p, width = 8) # Vectorial format
-    ggsave(paste0(filename, tiff_extension), p, width = 8) # Tiff format
-  }
+    save_plot(paste0("barplot_", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_path, "figures", "enrichGO"), 
+              width = 8, 
+              height = 12)
+    }
 }
-image_number <- image_number + i
 
 ### Dotplot ####
 
@@ -192,16 +192,17 @@ for (i in seq_along(dotplot_results)) {
     plot_name_hyphen <- gsub("\\.ID", "", plot_name) # Remove ".name"
     plot_name <- gsub("_", " ", plot_name_hyphen) # Replace "_" with " "
 
-    p <- dotplot_results[[i]] +
+    p <- dotplot_results[[1]] +
       ggplot2::ggtitle(paste0("Dot plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path, "figures/enrichGO/", image_number + i, "_Dotplot_", plot_name_hyphen) # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename, pdf_extension), p, width = 8) # Vectorial format
-    ggsave(paste0(filename, tiff_extension), p, width = 8) # Tiff format
+    save_plot(paste0("dotplot_", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_path, "figures", "enrichGO"), 
+              width = 8, 
+              height = 12)
+    
+    
   }
 }
-image_number <- image_number + i
-
 ### CNET plot ####
 
 cnetplot_results <- lapply(results_list_GO, perform_cnetplots)
@@ -217,14 +218,13 @@ for (i in seq_along(cnetplot_results)) {
 
     p <- cnetplot_results[[i]] +
       ggplot2::ggtitle(paste0("CNET plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path, "figures/enrichGO/", image_number + i, "_cnet_", plot_name_hyphen) # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename, pdf_extension), p, width = 8, height = 8, units = "in") # Vectorial format
-    ggsave(paste0(filename, tiff_extension), p, width = 8, height = 8, units = "in") # Tiff format
+    save_plot(paste0("cnet_plot_", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_path, "figures", "enrichGO"), 
+              width = 8, 
+              height = 12)
   }
 }
-image_number <- image_number + i
-
 
 ### UPSET plot ####
 upsetplot_results <- lapply(results_list_GO, perform_upsetplot)
@@ -241,13 +241,13 @@ for (i in seq_along(upsetplot_results)) {
     p <- upsetplot_results[[i]] +
       ggplot2::ggtitle(paste0("UPSET plot for ", plot_name)) +
       geom_bar(aes(stat = "identity", width = 0.2))
-    print(p)
-    filename <- paste0(output_path, "figures/enrichGO/", image_number + i, "_upset_", plot_name_hyphen) # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename, pdf_extension), p, width = 8) # Vectorial format
-    ggsave(paste0(filename, tiff_extension), p, width = 8) # Tiff format
+    save_plot(paste0("upset_", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_path, "figures", "enrichGO"), 
+              width = 8, 
+              height = 12)
   }
 }
-image_number <- image_number + i
 
 
 ### Heatmap plot ####
@@ -264,14 +264,14 @@ for (i in seq_along(heatmapplot_results)) {
 
     p <- heatmapplot_results[[i]] +
       ggplot2::ggtitle(paste0("HeatMap plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path, "figures/enrichGO/", image_number + i, "_heatmap_", plot_name_hyphen) # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename, pdf_extension), p, width = 8, dpi = 300) # Vectorial format
-    ggsave(paste0(filename, tiff_extension), p, width = 8, dpi = 300) # Tiff format
-  }
+    save_plot(paste0("heatmap_", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_path, "figures", "enrichGO"), 
+              width = 8, 
+              height = 12)
+    
+    }
 }
-image_number <- image_number + i
-
 
 ## Tree plots ####
 treeplot_results <- lapply(results_list_GO, perform_treeplot)
@@ -290,13 +290,15 @@ for (i in seq_along(treeplot_results)) {
 
   filename <- paste0(output_path, "figures/enrichGO/", sprintf("%03d", image_number + i), "_treeplot_", plot_name)
 
-  # Añadir título y exportar
+  # Add title and export
   p <- p + ggtitle(paste("TreePlot for", gsub("_", " ", plot_name)))
-  print(p)
-  ggsave(paste0(filename, pdf_extension), p, width = 8, height = 6, dpi = 300)
-  ggsave(paste0(filename, tiff_extension), p, width = 8, height = 6, dpi = 300)
+  save_plot(paste0("treeplot_", plot_name_hyphen), 
+            p, 
+            output_dir = file.path(output_path, "figures", "enrichGO"), 
+            width = 8, 
+            height = 12)
 }
-image_number <- image_number + i
+
 
 # Look at this page follow it.
 # https://bioc.ism.ac.jp/packages/3.7/bioc/vignettes/enrichplot/inst/doc/enrichplot.html#bar-plot
@@ -370,12 +372,12 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
     ggtitle(paste("Plot for", plot_name))
 
   if (!is.null(file_prefix)) {
-    tiff_filename <- paste0(file_prefix, image_number + i, "_Lolliplot", "_", gsub(" ", "_", plot_name), ".tiff")
-    pdf_filename <- paste0(file_prefix, image_number + i, "_Lolliplot", "_", gsub(" ", "_", plot_name), ".pdf")
-    ggsave(filename = tiff_filename, plot = plot, device = "tiff", width = 8, dpi = 300)
-    ggsave(filename = pdf_filename, plot = plot, device = "pdf", width = 8, dpi = 300)
+    save_plot(paste0("lolliplot_", plot_name_hyphen), 
+              plot, 
+              output_dir = file.path(output_path, "figures", "enrichGO"), 
+              width = 8, 
+              height = 12)
   }
-  print(plot)
   return(plot)
 }
 

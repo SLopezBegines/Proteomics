@@ -123,13 +123,13 @@ for (i in seq_along(barplot_results)) {
 
     p <- barplot_results[[i]] +
       ggplot2::ggtitle(paste0("Bar plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path, "figures/GO_adj/", image_number + i, "_barplot_", plot_name_hyphen) # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename, pdf_extension), p, width = 8, height = 8, units = "in") # Vectorial format
-    ggsave(paste0(filename, tiff_extension), p, width = 8, height = 8, units = "in") # Tiff format
+    save_plot(paste0("GO_adj_barplot", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_dir, "figures", "GO_adj"), 
+              width = 7, 
+              height = 7)
   }
 }
-image_number <- image_number + i
 
 ### Dotplot ####
 
@@ -146,13 +146,13 @@ for (i in seq_along(dotplot_results)) {
 
     p <- dotplot_results[[i]] +
       ggplot2::ggtitle(paste0("Dot plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path, "figures/GO_adj/", image_number + i, "_Dotplot_", plot_name_hyphen) # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename, pdf_extension), p, width = 8, height = 8, units = "in") # Vectorial format
-    ggsave(paste0(filename, tiff_extension), p, width = 8, height = 8, units = "in") # Tiff format
-  }
+    save_plot(paste0("GO_adj_dotplot", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_dir, "figures", "GO_adj"), 
+              width = 7, 
+              height = 7)
+      }
 }
-image_number <- image_number + i
 '
 ### CNET plot ####
 
@@ -170,7 +170,7 @@ for (i in seq_along(cnetplot_results)) {
     p <- cnetplot_results[[i]]+
       ggplot2::ggtitle(paste0("CNET plot for ", plot_name))
     print(p)
-    filename <- paste0(output_path,"figures/GO_adj/",image_number+i,"_cnet_", plot_name_hyphen)  # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
+    filename <- paste0(output_path,"figures/GO_adj/",image_number+i,"_cnet_", plot_name_hyphen)  # Output file name (you can change the extension to match the desired format)
     ggsave(paste0(filename,pdf_extension), p, width = 8, height = 8, units = "in")  # Vectorial format
     ggsave(paste0(filename,tiff_extension), p, width = 8, height = 8, units = "in")  # Tiff format
   }
@@ -194,14 +194,13 @@ for (i in seq_along(upsetplot_results)) {
     p <- upsetplot_results[[i]] +
       ggplot2::ggtitle(paste0("UPSET plot for ", plot_name)) +
       geom_bar(aes(stat = "identity", width = 0.2))
-    print(p)
-    filename <- paste0(output_path, "figures/GO_adj/", image_number + i, "_upset_", plot_name_hyphen) # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename, pdf_extension), p, width = 8, height = 8, units = "in") # Vectorial format
-    ggsave(paste0(filename, tiff_extension), p, width = 8, height = 8, units = "in") # Tiff format
+    save_plot(paste0("GO_adj_upset", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_dir, "figures", "GO_adj"), 
+              width = 7, 
+              height = 7)
   }
 }
-image_number <- image_number + i
-
 
 ### Heatmap plot ####
 heatmapplot_results <- lapply(results_list_adj_enrichGO_ALL, perform_heatmapplot)
@@ -217,14 +216,14 @@ for (i in seq_along(heatmapplot_results)) {
 
     p <- heatmapplot_results[[i]] +
       ggplot2::ggtitle(paste0("HeatMap plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path, "figures/GO_adj/", image_number + i, "_heatmap_", plot_name_hyphen) # Nombre del archivo de salida (puedes cambiar la extensión según el formato deseado)
-    ggsave(paste0(filename, pdf_extension), p, width = 8, height = 8, units = "in", dpi = 300) # Vectorial format
-    ggsave(paste0(filename, tiff_extension), p, width = 8, height = 8, units = "in", dpi = 300) # Tiff format
-  }
+    
+    save_plot(paste0("GO_adj_heatmap", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_dir, "figures", "GO_adj"), 
+              width = 7, 
+              height = 7)
+    }
 }
-image_number <- image_number + i
-
 # Look at this page follow it.
 # https://bioc.ism.ac.jp/packages/3.7/bioc/vignettes/enrichplot/inst/doc/enrichplot.html#bar-plot
 
@@ -295,12 +294,12 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
     ggtitle(paste("Plot for", plot_name))
 
   if (!is.null(file_prefix)) {
-    tiff_filename <- paste0(file_prefix, image_number + i, "_Lolliplot", "_", gsub(" ", "_", plot_name), ".tiff")
-    pdf_filename <- paste0(file_prefix, image_number + i, "_Lolliplot", "_", gsub(" ", "_", plot_name), ".pdf")
-    ggsave(filename = tiff_filename, plot = plot, device = "tiff", width = 8, height = 8, units = "in", dpi = 300)
-    ggsave(filename = pdf_filename, plot = plot, device = "pdf", width = 8, height = 8, units = "in", dpi = 300)
+    save_plot(paste0("GO_lolliplot_", plot_name_hyphen), 
+              plot, 
+              output_dir = file.path(output_dir, "figures", "GO_adj"), 
+              width = 7, 
+              height = 7)
   }
-  print(plot)
   return(plot)
 }
 

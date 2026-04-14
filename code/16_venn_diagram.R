@@ -57,7 +57,7 @@ venn_plot <- function(gene_list, list_name) {
   gene_list <- lapply(gene_list, remove_na_genes)
   
   n_sets <- length(gene_list)
-  palette <- brewer.pal(min(n_sets, 8), "Set2")  # máximo 8 colores
+  palette <- brewer.pal(min(n_sets, 8), "Set2")  # maximum 8 colours
   
   p <- ggvenn::ggvenn(
     gene_list,
@@ -65,11 +65,7 @@ venn_plot <- function(gene_list, list_name) {
     stroke_size = 0.5,
     text_size = 4
   )
-
-  ggsave(paste0(output_path,"VennDiagram/", list_name, "_venn.pdf"), p, width = 7, height = 7)
-  ggsave(paste0(output_path,"VennDiagram/", list_name, "_venn.tiff"), p, width = 7, height = 7)
-  
-  print(p)
+  save_plot(paste0("VennDiagram/", list_name, "_venn"), p, width = 7, height = 7)
   return(p)
 }
 
@@ -90,11 +86,7 @@ upset_plot <- function(gene_list, list_name) {
   }
   
   p <- upset(gene_df, intersect = names(gene_list), name = "Gene Sets", min_size = 1)
-  
-  ggsave(paste0(output_path,"VennDiagram/", list_name, "_upset.pdf"), p, width = 10, height = 6)
-  ggsave(paste0(output_path,"VennDiagram/", list_name, "_upset.tiff"), p, width = 10, height = 6)
-  
-  print(p)
+  save_plot(paste0("VennDiagram/", list_name, "_upset"), p, width = 7, height = 7)
   return(p)
 }
 

@@ -1,5 +1,7 @@
 # load libraries ####
 # install.packages("renv")
+
+
 # Function to load libraries from CRAN
 install_and_load_library <- function(lib_names) {
   missing_libs <- lib_names[!sapply(lib_names, requireNamespace, quietly = TRUE)]
@@ -44,7 +46,7 @@ libraries_bioconductor <- c(
 
 install_and_load_library(libraries)
 install_and_load_library_bioconductor(libraries_bioconductor)
-
+renv::snapshot()
 
 rm("install_and_load_library_bioconductor", "install_and_load_library", "libraries", "libraries_bioconductor")
 # library(org.Dr.eg.db)#For Zebrafish. Change Dr by Mm or Hs for mouse or human
