@@ -148,8 +148,11 @@ plot_proteomic_stats <- function(stats_table, plot_type = "all") {
         axis.text.x = element_text(angle = 45, hjust = 1),
         legend.position = "bottom"
       )
-
-    print(p1)
+    save_plot("summary_significant_proteins", 
+              p1, 
+              output_dir = file.path(output_path, "figures", "summary"),
+              width = 10, 
+              height = 6)
   }
 
   if (plot_type == "all" || plot_type == "regulation") {
@@ -178,8 +181,11 @@ plot_proteomic_stats <- function(stats_table, plot_type = "all") {
         axis.text.x = element_text(angle = 45, hjust = 1),
         legend.position = "bottom"
       )
-
-    print(p2)
+    save_plot("up_down_regulation", 
+              p2, 
+              output_dir = file.path(output_path, "figures", "summary"),
+              width = 10, 
+              height = 6)
   }
 
   if (plot_type == "all" || plot_type == "regulation_adj") {
@@ -208,8 +214,11 @@ plot_proteomic_stats <- function(stats_table, plot_type = "all") {
         axis.text.x = element_text(angle = 45, hjust = 1),
         legend.position = "bottom"
       )
-
-    print(p3)
+    save_plot("up_down_regulation_adj", 
+              p3, 
+              output_dir = file.path(output_path, "figures", "summary"),
+              width = 10, 
+              height = 6)
   }
 
   if (plot_type == "all" || plot_type == "heatmap") {
@@ -240,7 +249,11 @@ plot_proteomic_stats <- function(stats_table, plot_type = "all") {
         legend.position = "right"
       )
 
-    print(p4)
+    save_plot("heatmap", 
+              p4, 
+              output_dir = file.path(output_path, "figures", "summary"),
+              width = 10, 
+              height = 6)
   }
 
   if (plot_type == "all" || plot_type == "comparison") {
@@ -265,7 +278,11 @@ plot_proteomic_stats <- function(stats_table, plot_type = "all") {
           legend.position = "bottom"
         )
 
-      print(p5)
+      save_plot("comparison", 
+                p5, 
+                output_dir = file.path(output_path, "figures", "summary"),
+                width = 10, 
+                height = 6)
     }
   }
 }

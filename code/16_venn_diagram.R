@@ -65,7 +65,11 @@ venn_plot <- function(gene_list, list_name) {
     stroke_size = 0.5,
     text_size = 4
   )
-  save_plot(paste0("VennDiagram/", list_name, "_venn"), p, width = 7, height = 7)
+  save_plot(paste0(list_name, "_venn"), 
+            p, 
+            output_dir = file.path(output_path, "figures", "VennDiagram"), 
+            width = 8, 
+            height = 12)
   return(p)
 }
 
@@ -86,7 +90,11 @@ upset_plot <- function(gene_list, list_name) {
   }
   
   p <- upset(gene_df, intersect = names(gene_list), name = "Gene Sets", min_size = 1)
-  save_plot(paste0("VennDiagram/", list_name, "_upset"), p, width = 7, height = 7)
+  save_plot(paste0(list_name, "_upset"), 
+            p, 
+            output_dir = file.path(output_path, "figures", "VennDiagram"), 
+            width = 8, 
+            height = 12)
   return(p)
 }
 

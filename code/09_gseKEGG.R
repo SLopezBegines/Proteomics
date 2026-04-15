@@ -159,7 +159,11 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
     ggtitle(paste("Plot for", plot_name))
   
   if (!is.null(file_prefix)) {
-    save_plot(paste0(file_prefix, "_", gsub(" ", "_", plot_name), plot, width = 7, height = 7)
+    save_plot(paste0("KEGG_lolliplot_", gsub(" ", "_", plot_name)), 
+              plot, 
+              output_dir = file.path(output_path, "figures", "KEGG_GO"), 
+              width = 7, 
+              height = 7)
     }
   return(plot) 
 }

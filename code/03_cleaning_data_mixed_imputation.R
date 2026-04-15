@@ -542,7 +542,7 @@ specifically the impute function description for more information.'
       ) +
       theme_minimal()
     
-    save_plot("%02d_SD_before_after_scatter", p1, width = 8, height = 6)
+    save_plot("%02d_SD_before_after_scatter", p1, width = 12, height = 16)
   }
 
   # Example usage:
@@ -587,7 +587,7 @@ specifically the impute function description for more information.'
 
   # Visualization of imputation effect
   p <- plot_imputation(data_norm, data_imp, data_imp_man_gauss, data_imp_knn, manual_imputation, mixed_splited_imputation, data_imp_QRILC)
-  save_plot("protein_imputation_distribution", p, width = 8, height = 6)
+  save_plot("protein_imputation_distribution", p, width = 8, height = 12)
   
   # For our dataset, knn and mixed imputation result in less identified differential expressed proteins compared to the no imputation and MinProb. No imputation results in the identification of the most differentially expressed proteins in our dataset with many proteins missing values.
   # Note that the performance of the different imputation methods is data set-dependent. It is recommended to always carefully check the effect of filtering and data imputation on your results.
@@ -634,7 +634,7 @@ specifically the impute function description for more information.'
       theme = theme(plot.title = element_text(size = 16, hjust = 0.5)),
       tag_levels = "A"
     )
-  save_plot("PCA_imputation_methods", pca_combined, width = 8, height = 6)
+  save_plot("PCA_imputation_methods", pca_combined, width = 12, height = 16)
   
   # run_pca_hubert_analysis() ---------------------------------------------
   # Outlier detection using robust PCA (PCAHubert, rrcov package).
@@ -693,7 +693,7 @@ specifically the impute function description for more information.'
       combined_plot <- wrap_plots(plots, ncol = 2) # Adjust ncol as needed
 
       # Save combined plot
-      save_plot("Combined_DD_Plots", combined_plot, width = 8, height = 6)
+      save_plot("Combined_DD_Plots", combined_plot, width = 12, height = 16)
     }
 
     # Guardar tabla consolidada de outliers

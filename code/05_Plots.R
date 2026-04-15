@@ -91,7 +91,8 @@ for(i in 1:length(comparisons)){
 ### ggplot p-value ####
 # Define the specific genes to always label
 
-mycolors <- c("blue", "red", "grey")
+mycolors <- c("#F39B7F", "#4DBBD5", "#A6A6A6")
+
 names(mycolors) <- c("DOWN", "UP", "NO")
 for (i in 1:length(comparisons)){
   
@@ -112,8 +113,8 @@ for (i in 1:length(comparisons)){
                                  labs(x=(paste("Fold-Change ",comparisons[i])),
                                       y=expression(paste("-log"[10],"(p-value)"))) +
                                  geom_vline(xintercept= 0) + 
-                                 #geom_vline(xintercept= c(-FC, FC), col="red",linetype="dashed") + 
-                                 #geom_hline(yintercept= -log10(p_val), col="red",linetype="dashed") + 
+                                 geom_vline(xintercept= c(-FC, FC), col="red",linetype="dashed") + 
+                                 geom_hline(yintercept= -log10(p_val), col="red",linetype="dashed") + 
                                  scale_colour_manual(values = mycolors) +
                                  geom_text_repel(
                                    aes(label = .data[[label]]),

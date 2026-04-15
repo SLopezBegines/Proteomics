@@ -152,7 +152,7 @@ for (i in seq_along(dotplot_results)) {
       ggplot2::ggtitle(paste0("Dot plot for ", plot_name))
     save_plot(paste0("GSE_adj_dotplot", plot_name_hyphen), 
               p, 
-              output_dir = file.path(output_dir, "figures", "gseGO_adj"), 
+              output_dir = file.path(output_path, "figures", "gseGO_adj"), 
               width = 7, 
               height = 7)
     }
@@ -200,7 +200,7 @@ for (i in seq_along(heatmapplot_results)) {
       ggplot2::ggtitle(paste0("HeatMap plot for ", plot_name))
     save_plot(paste0("GSE_adj_heatmap", plot_name_hyphen), 
               p, 
-              output_dir = file.path(output_dir, "figures", "gseGO_adj"), 
+              output_dir = file.path(output_path, "figures", "gseGO_adj"), 
               width = 7, 
               height = 7)
     }
@@ -222,7 +222,7 @@ for (i in seq_along(ridgeplot_results)) {
       ggplot2::ggtitle(paste0("Ridge plot for ", plot_name))
     save_plot(paste0("GSE_adj_ridgeplot", plot_name_hyphen), 
               p, 
-              output_dir = file.path(output_dir, "figures", "gseGO_adj"), 
+              output_dir = file.path(output_path, "figures", "gseGO_adj"), 
               width = 7, 
               height = 7)
     }
@@ -245,7 +245,7 @@ for (i in seq_along(pmcplot_results)) {
       ggplot2::ggtitle(paste0("PMC plot for ", plot_name))
     save_plot(paste0("GSE_adj_pcmplot", plot_name_hyphen), 
               p, 
-              output_dir = file.path(output_dir, "figures", "gseGO_adj"), 
+              output_dir = file.path(output_path, "figures", "gseGO_adj"), 
               width = 7, 
               height = 7)
     }
@@ -303,7 +303,7 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
   if (!is.null(file_prefix)) {
     save_plot(paste0("GSE_lolliplot_", plot_name_hyphen), 
               plot, 
-              output_dir = file.path(output_dir, "figures", "gseGO_adj"), 
+              output_dir = file.path(output_path, "figures", "gseGO_adj"), 
               width = 7, 
               height = 7)
   }

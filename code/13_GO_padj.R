@@ -125,7 +125,7 @@ for (i in seq_along(barplot_results)) {
       ggplot2::ggtitle(paste0("Bar plot for ", plot_name))
     save_plot(paste0("GO_adj_barplot", plot_name_hyphen), 
               p, 
-              output_dir = file.path(output_dir, "figures", "GO_adj"), 
+              output_dir = file.path(output_path, "figures", "GO_adj"), 
               width = 7, 
               height = 7)
   }
@@ -148,7 +148,7 @@ for (i in seq_along(dotplot_results)) {
       ggplot2::ggtitle(paste0("Dot plot for ", plot_name))
     save_plot(paste0("GO_adj_dotplot", plot_name_hyphen), 
               p, 
-              output_dir = file.path(output_dir, "figures", "GO_adj"), 
+              output_dir = file.path(output_path, "figures", "GO_adj"), 
               width = 7, 
               height = 7)
       }
@@ -196,7 +196,7 @@ for (i in seq_along(upsetplot_results)) {
       geom_bar(aes(stat = "identity", width = 0.2))
     save_plot(paste0("GO_adj_upset", plot_name_hyphen), 
               p, 
-              output_dir = file.path(output_dir, "figures", "GO_adj"), 
+              output_dir = file.path(output_path, "figures", "GO_adj"), 
               width = 7, 
               height = 7)
   }
@@ -219,7 +219,7 @@ for (i in seq_along(heatmapplot_results)) {
     
     save_plot(paste0("GO_adj_heatmap", plot_name_hyphen), 
               p, 
-              output_dir = file.path(output_dir, "figures", "GO_adj"), 
+              output_dir = file.path(output_path, "figures", "GO_adj"), 
               width = 7, 
               height = 7)
     }
@@ -296,7 +296,7 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
   if (!is.null(file_prefix)) {
     save_plot(paste0("GO_lolliplot_", plot_name_hyphen), 
               plot, 
-              output_dir = file.path(output_dir, "figures", "GO_adj"), 
+              output_dir = file.path(output_path, "figures", "GO_adj"), 
               width = 7, 
               height = 7)
   }
