@@ -301,10 +301,10 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
     ggtitle(paste("Plot for", plot_name))
   
   if (!is.null(file_prefix)) {
-    save_plot(paste0("GSE_lolliplot_", plot_name_hyphen), 
-              plot, 
-              output_dir = file.path(output_path, "figures", "gseGO_adj"), 
-              width = 7, 
+    save_plot(paste0("GSE_lolliplot_", gsub(" ", "_", plot_name)),
+              plot,
+              output_dir = file.path(output_path, "figures", "gseGO_adj"),
+              width = 7,
               height = 7)
   }
   print(plot)

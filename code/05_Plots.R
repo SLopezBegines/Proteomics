@@ -18,7 +18,9 @@ sig_adjusted_data <- readxl::read_xlsx(path = paste0(output_path,"tables/sig_adj
 # Plots ####
 ## PCA plot ####
 p <- plot_pca(dep_analysis,x = 2, y = 1, n = (length(dep_analysis)), point_size = 4)
-save_plot("PCA", p, width = 8, height = 6)
+save_plot("PCA", p,  
+          output_dir = paste0(output_path, "figures"),
+          width = 8, height = 6)
 
 ## PCA plot loadings ####
 # get LFQ column numbers
@@ -40,14 +42,18 @@ pca_loadings <- autoplot(pca_res, data = data_results, colour= "significant",sha
                 label = FALSE, label.size = 3,
                 loadings = FALSE, loadings.colour = "blue",
                 loadings.label = TRUE, loadings.label.size = 3, frame = FALSE, frame.type = "norm")
-save_plot("PCA_loadings_p_adj", pca_loadings, width = 8, height = 6)
+save_plot("PCA_loadings_p_adj", pca_loadings,  
+          output_dir = paste0(output_path, "figures"),
+          width = 8, height = 6)
 
 #loadings by p_value
 pca_loadings <- autoplot(pca_res, data = data_results, colour= "significance",shape = TRUE, 
                 label = FALSE, label.size = 3,
                 loadings = FALSE, loadings.colour = "blue",
                 loadings.label = TRUE, loadings.label.size = 3, frame = FALSE, frame.type = "norm")
-save_plot("PCA_loadings_p_value", pca_loadings, width = 8, height = 6)
+save_plot("PCA_loadings_p_value", pca_loadings,  
+          output_dir = paste0(output_path, "figures"),
+          width = 8, height = 6)
 
 ## Heatmaps ####
 ### Correlation matrix ####
@@ -84,7 +90,9 @@ assign("image_number", image_number + 1, envir = .GlobalEnv)
 for(i in 1:length(comparisons)){
   vulcano<- plot_volcano(dep_analysis, contrast = comparisons[i], label_size = 3, add_names = TRUE, adjusted = FALSE)
   filename <- paste0("vulcano_DEP_",comparisons[i])  # Output file name (you can change the extension to match the desired format)
-  save_plot(filename, vulcano, width = 8, height = 6)
+  save_plot(filename, vulcano,  
+            output_dir = paste0(output_path, "figures"),
+            width = 8, height = 6)
 }
 
 
@@ -124,7 +132,9 @@ for (i in 1:length(comparisons)){
   ) 
   
   filename <- paste0("vulcano_ggplot_",comparisons[i])  # Output file name (you can change the extension to match the desired format)
-  save_plot(filename, vulcanogg, width = 8, height = 6)
+  save_plot(filename, vulcanogg,  
+            output_dir = paste0(output_path, "figures"),
+            width = 8, height = 6)
 }
 
 ## Barplots ####
@@ -144,7 +154,9 @@ for (j in 1:(length(expressed)/ number)){
   
   group <- expressed[start:end]
   singleplot <-plot_single(dep_analysis, proteins = group, type="centered") #+ ggtitle(comparisons[i])
-  save_plot("enriched_protein_barplot", p, width = 8, height = 6)
+  save_plot("enriched_protein_barplot", p,  
+            output_dir = paste0(output_path, "figures"),
+            width = 8, height = 6)
 }
 ### p_value Significant ####
 #image_number <- 23
@@ -160,7 +172,9 @@ for (j in 1:(length(expressed)/ number)){
   group <- expressed[start:end]
   singleplot <-plot_single(dep_analysis, proteins = group, type="centered") #+ ggtitle(comparisons[i])
   p<-print(singleplot)
-  save_plot("enriched_protein_barplot_p_value", p, width = 8, height = 6)
+  save_plot("enriched_protein_barplot_p_value", p,  
+            output_dir = paste0(output_path, "figures"),
+            width = 8, height = 6)
 }
   }
 
@@ -188,7 +202,9 @@ for (i in 1:ncol(combinations)) {
     labs(title = plot_title, x = ratio_columns[which(ratio_columns == x)], y = ratio_columns[which(ratio_columns == y)])  # Convert names to symbols
   
   # Save plot
-  save_plot("FC_correlation", p, width = 8, height = 6)
+  save_plot("FC_correlation", p,  
+            output_dir = paste0(output_path, "figures"),
+            width = 8, height = 6)
   }
 }
 
@@ -229,7 +245,9 @@ heatmap_adj <- pheatmap::pheatmap(heatmap_matrix_padj, cutree_rows = 4,
                                   main = "Fold-change ratio adjusted-pvalue",
                                   display_numbers = TRUE
 )
-save_plot("HeatMap_padj", heatmap_adj, width = 4, height = 18)
+save_plot("HeatMap_padj", heatmap_adj,  
+          output_dir = paste0(output_path, "figures"),
+          width = 4, height = 18)
 
 ### HeatMap pval ####
 
@@ -262,7 +280,9 @@ heatmap_pval <- pheatmap::pheatmap(heatmap_matrix ,
                                    display_numbers = TRUE
 )
 
-save_plot("HeatMap_ratio", heatmap_pval, width = 4, height = 18)
+save_plot("HeatMap_ratio", heatmap_pval,  
+          output_dir = paste0(output_path, "figures"),
+          width = 4, height = 18)
 
 ### HeatMap pval excluded####
 heatmap_df <- data_results %>% 
@@ -317,7 +337,9 @@ heatmap_pval <- pheatmap::pheatmap(heatmap_matrix_exclude,
                                    labels_row = heatmap_df$name  # Add gene names to y-axis
 )
 
-save_plot("HeatMap_ratio_excluded", heatmap_pval, width = 4, height = 18)
+save_plot("HeatMap_ratio_excluded", heatmap_pval,  
+          output_dir = paste0(output_path, "figures"),
+          width = 4, height = 18)
 
 ## By Log2 Intensity ####
 
@@ -354,7 +376,9 @@ heatmap_int <- pheatmap::pheatmap(heatmap_matrix_intensity,
                                   #color = my_color_palette
 )
 
-save_plot("HeatMap_intensity_padj", heatmap_int, width = 4, height = 18)
+save_plot("HeatMap_intensity_padj", heatmap_int,  
+          output_dir = paste0(output_path, "figures"),
+          width = 4, height = 18)
 
 ### Log2 Intensity ####
 heatmap_intensity <- data_results %>% 
@@ -388,7 +412,9 @@ heatmap_int <- pheatmap::pheatmap(heatmap_matrix_intensity, cutree_rows = 6, row
                                   #labels_row = heatmap_intensity$name,
 )
 
-save_plot("HeatMap_intensity", heatmap_int, width = 6, height = 18)
+save_plot("HeatMap_intensity", heatmap_int,  
+          output_dir = paste0(output_path, "figures"),
+          width = 6, height = 18)
 
 ### Log2 Intensity Excluded ####
 heatmap_intensity <- data_results %>% 
@@ -449,4 +475,6 @@ heatmap_int <- pheatmap::pheatmap(heatmap_matrix_exclude_int_2, cutree_rows = 4,
                                   #color = my_color_palette
 )
 
-save_plot("HeatMap_intensity_excluded", heatmap_int, width = 6, height = 10)
+save_plot("HeatMap_intensity_excluded", heatmap_int,  
+          output_dir = paste0(output_path, "figures"),
+          width = 6, height = 10)

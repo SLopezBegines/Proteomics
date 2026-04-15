@@ -75,7 +75,7 @@ venn_plot <- function(gene_list, list_name) {
 
 
 # Un solo Venn general con todas las comparaciones
-venn_plot(UPDOWN_dataframes, "All_Groups")
+#venn_plot(UPDOWN_dataframes, "All_Groups")
 
 # Upset plots ####
 
@@ -95,6 +95,7 @@ upset_plot <- function(gene_list, list_name) {
             output_dir = file.path(output_path, "figures", "VennDiagram"), 
             width = 8, 
             height = 12)
+  print(p)
   return(p)
 }
 

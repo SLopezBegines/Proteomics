@@ -237,17 +237,21 @@ Re-run the functional enrichment analyses (GO ORA, gseGO, gseKEGG) using a stric
 
 ```{r enrichment-adjusted}
 source("../code/13_GO_padj.R")
+source("../code/14_gseKEGG_padj.R")
 source("../code/15_gseGO_adj.R")
-source("../code/13_gseKEGG_padj.R")
 ```
+# VennDiagramms
+
+Visualize the overlap of differentially expressed proteins across comparisons using Venn diagrams. This helps identify shared and unique DE proteins between contrasts (e.g., which proteins are DE in both CTRL vs WT and CTRL vs KO, but not in KO vs WT).
+```{r venn-diagrams, fig.width=8, fig.height=8}
+source("../code/16_venn_diagram.R")
+```
+
+
 
 # Summary Statistics
 
 Compute and visualize summary metrics across all comparisons: total proteins quantified, number of DE proteins (up/down) per comparison, overlap between comparisons, and effect size distributions. This section provides a high-level overview of the experiment's results.
-
-```{r summary-stats}
-source("../code/17_summary_stats_proteomics.R")
-```
 
 ## Statistical Summary Tables
 
@@ -255,15 +259,18 @@ Aggregate differential expression statistics into structured tables for reportin
 
 - **Combined table** (`all_stats`): a single data frame with summary metrics across all comparisons, suitable for export
 - **Per-dataset tables** (`stats_list`): maintains a list structure for experiments with multiple datasets
+```{r summary-stats}
+source("../code/17_summary_stats_proteomics.R")
+```
 
 ```{r stats-tables}
 list_results <- list(data_results)
 names(list_results) <- c("IP_CLN3")
 
 # Combined summary across all comparisons
-all_stats <- apply_stats_to_list(data_results, comparisons)
+all_stats <- apply_stats_to_list(list_results, comparisons)
 print(all_stats)
-writexl::write_xlsx(all_stats, paste0(output_path, "tables/CLN3_all_proteomic_stats.xlsx"))
+writexl::write_xlsx(all_stats, paste0(output_path, "tables/all_proteomic_stats.xlsx"))
 
 # Per-dataset summary (useful when analyzing multiple experiments)
 stats_list <- apply_stats_to_list_separate(list_results, comparisons)
@@ -283,12 +290,11 @@ Visualize the summary statistics with multiple plot types:
 - `"all"`: generate all plot types at once
 
 ```{r stats-plots, fig.width=12, fig.height=8}
-plot_proteomic_stats(stats_list[[1]], plot_type = "all")
-
+plot_proteomic_stats(all_stats, plot_type = "all")
 # Individual plot types for fine-grained control
-plot_proteomic_stats(all_stats, plot_type = "summary")
-plot_proteomic_stats(all_stats, plot_type = "regulation")
-plot_proteomic_stats(all_stats, plot_type = "regulation_adj")
-plot_proteomic_stats(all_stats, plot_type = "heatmap")
-plot_proteomic_stats(all_stats, plot_type = "comparison")
+#plot_proteomic_stats(all_stats, plot_type = "summary")
+#plot_proteomic_stats(all_stats, plot_type = "regulation")
+#plot_proteomic_stats(all_stats, plot_type = "regulation_adj")
+#plot_proteomic_stats(all_stats, plot_type = "heatmap")
+#plot_proteomic_stats(all_stats, plot_type = "comparison")
 ```

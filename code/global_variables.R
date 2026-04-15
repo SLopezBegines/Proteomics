@@ -35,7 +35,11 @@ create_directories <- function(base_path) {
   create_dir_if_not_exists(paste0(base_path, "figures/summary"))
   create_dir_if_not_exists(paste0(base_path, "figures/enrichGO"))
   create_dir_if_not_exists(paste0(base_path, "figures/gseGO"))
-  create_dir_if_not_exists(paste0(base_path, "figures/KEGG"))
+  create_dir_if_not_exists(paste0(base_path, "figures/KEGG_GO"))
+  create_dir_if_not_exists(paste0(base_path, "figures/GO_adj"))
+  create_dir_if_not_exists(paste0(base_path, "figures/GO_adj"))
+  create_dir_if_not_exists(paste0(base_path, "figures/gseGO_adj"))
+  create_dir_if_not_exists(paste0(base_path, "figures/gseKEGG_adj"))
   create_dir_if_not_exists(paste0(base_path, "figures/panther"))
   create_dir_if_not_exists(paste0(base_path, "figures/rbioapi"))
 }

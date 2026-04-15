@@ -83,7 +83,6 @@ KEGG_gene_lists <- lapply(KEGG_input_dataframes, KEGG_gene_list)
 perform_gseKEGG <- function(gene_set) {
   results <- clusterProfiler::gseKEGG(geneList = gene_set,
                                       organism     = kegg_organism,
-                                      nPerm        = 10000,
                                       minGSSize    = 3,
                                       maxGSSize    = 800,
                                       pvalueCutoff = 0.05,
@@ -104,7 +103,7 @@ load(paste0(output_path,"RData/results_list_gseKEGG_ALL_padj.RData"))
 ## Lolliplots ####
 
 # Make dataframe list from GO results #
-results_df_gseKEGG_ALL <- map(results_list_gseKEGG_ALL, ~ .x@result)
+results_df_gseKEGG_ALL <- map(results_list_gseKEGG_ALL_padj, ~ .x@result)
 # Write each dataframe in the list to a separate sheet in an Excel file
 write_xlsx(results_df_gseKEGG_ALL, path = paste0(output_path,"tables/results_df_gseKEGG_ALL_padj.xlsx"))
 
@@ -156,7 +155,7 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
   if (!is.null(file_prefix)) {
     save_plot(paste0("lolliplot_", gsub(" ", "_", plot_name)), 
               plot, 
-              output_dir = file.path(output_path, "figures", "KEGG_GO"), 
+              output_dir = file.path(output_path, "figures", "gseKEGG_adj"), 
               width = 8, 
               height = 12)
     }
@@ -165,7 +164,7 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
 
 # Apply lolliplot function
 for (i in seq_along(results_df_gseKEGG_ALL)) {
-  lolliplot_result <- lolliplot(i, results_df_gseKEGG_ALL, file_prefix = paste0(output_path,"figures/KEGG_GO_adj/Lolliplot",i))
+  lolliplot_result <- lolliplot(i, results_df_gseKEGG_ALL, file_prefix = paste0(output_path,"figures/gseKEGG_adj/Lolliplot",i))
 }
 
 

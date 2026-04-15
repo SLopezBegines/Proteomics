@@ -45,11 +45,11 @@ load(paste0(output_path, "RData/results_list_adj_enrichGO_ALL.RData"))
 
 # GO Barplots function
 perform_barplots <- function(x) {
-  if (length(x[1][10]) == 0) { # Check if x[result][Count] is empty
+  if (length(x@result$Count) == 0) { # Check if x[result][Count] is empty
     cat("No elements found for dataframe.\n")
     return(NULL)
   } else {
-    results <- barplot(x, showCategory = 30) + facet_grid(ONTOLOGY ~ ., scale = "free")
+    results <- suppressWarnings(barplot(x, showCategory = 30)) + facet_grid(ONTOLOGY ~ ., scale = "free")
     # results <- enrichplot::dotplot(x, showCategory = 30)
     return(results)
   }
@@ -57,7 +57,7 @@ perform_barplots <- function(x) {
 
 # GO Dotplots function
 perform_dotplots <- function(x) {
-  if (length(x[1][10]) == 0) { # Check if x[result][Count] is empty
+  if (length(x@result$Count) == 0) { # Check if x[result][Count] is empty
     cat("No elements found for dataframe.\n")
     return(NULL)
   } else {
@@ -106,14 +106,13 @@ perform_heatmapplot <- function(x) {
   }
 }
 
-image_number <- 200
 
 ### Barplot ####
 barplot_results <- lapply(results_list_adj_enrichGO_ALL, perform_barplots)
 # Iterate over dotplot_results and print each plot individually
 for (i in seq_along(barplot_results)) {
   # if (nrow(barplot_results[[i]][[1]][10]) == 0) {
-  if (nrow(barplot_results[[i]]) == 0) {
+  if (length(barplot_results) == 0) {
     cat("Plot not generated for element ", i, ".\n")
   } else {
     # Extract the desired part of the name
@@ -136,7 +135,7 @@ for (i in seq_along(barplot_results)) {
 dotplot_results <- lapply(results_list_adj_enrichGO_ALL, perform_dotplots)
 # Iterate over dotplot_results and print each plot individually
 for (i in seq_along(dotplot_results)) {
-  if (nrow(dotplot_results[[i]][[1]][10]) == 0) {
+  if (length(dotplot_results) == 0) {
     cat("Plot not generated for element ", i, ".\n")
   } else {
     # Extract the desired part of the name
@@ -153,13 +152,13 @@ for (i in seq_along(dotplot_results)) {
               height = 7)
       }
 }
-'
+
 ### CNET plot ####
 
 cnetplot_results <- lapply(results_list_adj_enrichGO_ALL, perform_cnetplots)
 
 for (i in seq_along(cnetplot_results)) {
-  if (is.list(cnetplot_results[[i]]) == FALSE) {
+  if (length(cnetplot_results) == 0) {
     cat("Plot not generated for element ", i, ".\n")
   } else {
     # Extract the desired part of the name
@@ -169,21 +168,20 @@ for (i in seq_along(cnetplot_results)) {
 
     p <- cnetplot_results[[i]]+
       ggplot2::ggtitle(paste0("CNET plot for ", plot_name))
-    print(p)
-    filename <- paste0(output_path,"figures/GO_adj/",image_number+i,"_cnet_", plot_name_hyphen)  # Output file name (you can change the extension to match the desired format)
-    ggsave(paste0(filename,pdf_extension), p, width = 8, height = 8, units = "in")  # Vectorial format
-    ggsave(paste0(filename,tiff_extension), p, width = 8, height = 8, units = "in")  # Tiff format
-  }
+    save_plot(paste0("GO_adj_cnetplot", plot_name_hyphen), 
+              p, 
+              output_dir = file.path(output_path, "figures", "GO_adj"), 
+              width = 7, 
+              height = 7)
+      }
 }
-image_number <- image_number+i
 
-'
 
 ### UPSET plot ####
 upsetplot_results <- lapply(results_list_adj_enrichGO_ALL, perform_upsetplot)
 
 for (i in seq_along(upsetplot_results)) {
-  if (is.list(upsetplot_results[[i]]) == FALSE) {
+  if (length(upsetplot_results) == 0) {
     cat("Plot not generated for element ", i, ".\n")
   } else {
     # Extract the desired part of the name
@@ -206,7 +204,7 @@ for (i in seq_along(upsetplot_results)) {
 heatmapplot_results <- lapply(results_list_adj_enrichGO_ALL, perform_heatmapplot)
 
 for (i in seq_along(heatmapplot_results)) {
-  if (is.list(heatmapplot_results[[i]]) == FALSE) {
+  if (length(heatmapplot_results) == 0) {
     cat("Plot not generated for element ", i, ".\n")
   } else {
     # Extract the desired part of the name
@@ -294,7 +292,7 @@ lolliplot <- function(data_name, df_list, file_prefix = NULL) {
     ggtitle(paste("Plot for", plot_name))
 
   if (!is.null(file_prefix)) {
-    save_plot(paste0("GO_lolliplot_", plot_name_hyphen), 
+    save_plot(paste0("GO_lolliplot_", gsub(" ", "_", plot_name)),
               plot, 
               output_dir = file.path(output_path, "figures", "GO_adj"), 
               width = 7, 
@@ -342,7 +340,18 @@ save(results_panther, file = paste0(output_path, "RData/results_panther_adj.RDat
 load(paste0(output_path, "RData/results_panther_adj.RData"))
 
 # Make dataframe list from Panther results #
-GO_panther <- map(results_panther, ~ .x$result)
+GO_panther <- map(results_panther, function(x) {
+  df <- x$result
+  if (is.null(df) || nrow(df) == 0) return(data.frame())
+  df %>%
+    dplyr::rename(
+      Description = term.label,
+      GeneRatio   = fold_enrichment,
+      p.adjust    = fdr,
+      Count       = number_in_list
+    ) %>%
+    dplyr::mutate(ONTOLOGY = "BP")
+})
 
 # Apply lolliplot function
 for (i in seq_along(GO_panther)) {

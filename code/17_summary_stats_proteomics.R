@@ -2,21 +2,21 @@
 
 
 # Load data results
-data_brain_CLN3 <- readxl::read_xlsx("mains/output/CLN3/Brains/tables/data_results.xlsx")
-data_larvae_CLN3 <- readxl::read_xlsx("mains/output/CLN3/Larvae/outliers_removed/KNN/tables/data_results.xlsx")
+#data_brain_CLN3 <- readxl::read_xlsx("mains/output/CLN3/Brains/tables/data_results.xlsx")
+#data_larvae_CLN3 <- readxl::read_xlsx("mains/output/CLN3/Larvae/outliers_removed/KNN/tables/data_results.xlsx")
 
-data_brain_CLN12 <- readxl::read_xlsx("mains/output/CLN12/Brains/outlier_removed/tables/data_results.xlsx")
-data_larvae_CLN12 <- readxl::read_xlsx("mains/output/CLN12/Larvae/outlier_removed/tables/data_results.xlsx")
+#data_brain_CLN12 <- readxl::read_xlsx("mains/output/CLN12/Brains/outlier_removed/tables/data_results.xlsx")
+#data_larvae_CLN12 <- readxl::read_xlsx("mains/output/CLN12/Larvae/outlier_removed/tables/data_results.xlsx")
 # Define your comparisons
-comparisons <- c("CLN3_Lux1_vs_WT", "CLN3_Lux2_vs_WT")
+#comparisons <- c("CLN3_Lux1_vs_WT", "CLN3_Lux2_vs_WT")
 # If you want to include CLN12 comparisons, uncomment the following line:
-comparisons <- c("CLN12_vs_WT")
+#comparisons <- c("CLN12_vs_WT")
 # Create a named list of your data frames
-list_results <- list(data_brain_CLN3, data_larvae_CLN3)
-names(list_results) <- c("Brain_CLN3", "Larvae_CLN3")
+#list_results <- list(data_brain_CLN3, data_larvae_CLN3)
+#names(list_results) <- c("Brain_CLN3", "Larvae_CLN3")
 # If you want to include CLN12 data, uncomment the following lines:
-list_results <- list(data_brain_CLN12, data_larvae_CLN12)
-names(list_results) <- c("Brain_CLN12", "Larvae_CLN12")
+#list_results <- list(data_brain_CLN12, data_larvae_CLN12)
+#names(list_results) <- c("Brain_CLN12", "Larvae_CLN12")
 
 # Number of identified proteins ####
 # Function to calculate proteomic statistics
@@ -104,16 +104,17 @@ apply_stats_to_list_separate <- function(data_list, comparisons) {
 #   experiment2 = read_excel("data2.xlsx")
 # )
 #
+
+#list_results <- list(experiment1 = data_results)
 # Option 1: Combined table with all datasets
-all_stats <- apply_stats_to_list(list_results, comparisons)
-print(all_stats)
+#all_stats <- apply_stats_to_list(list_results, comparisons)
+#print(all_stats)
 # save as xlsx
-writexl::write_xlsx(all_stats, "CLN3_all_proteomic_stats.xlsx")
+#writexl::write_xlsx(all_stats, file.path(output_path, "tables","all_proteomic_stats.xlsx"))
 # write_csv(all_stats, "all_proteomic_stats.csv")
 #
 # Option 2: Separate tables per dataset (maintains list structure)
-stats_list <- apply_stats_to_list_separate(list_results, comparisons)
-print(stats_list$experiment1)
+#stats_list <- apply_stats_to_list_separate(list_results, comparisons)
 #
 # Example with different number of comparisons:
 # comparisons_extended <- c("CLN3_Lux1_vs_WT", "CLN3_Lux2_vs_WT", "CLN3_Lux3_vs_WT")
@@ -293,11 +294,11 @@ plot_proteomic_stats <- function(stats_table, plot_type = "all") {
 # all_stats <- apply_stats_to_list(data_list, comparisons)
 #
 # # Plot all visualizations
-plot_proteomic_stats(all_stats, plot_type = "all")
+#plot_proteomic_stats(all_stats, plot_type = "all")
 #
 # # Or plot specific types:
-plot_proteomic_stats(all_stats, plot_type = "summary")
-plot_proteomic_stats(all_stats, plot_type = "regulation")
-plot_proteomic_stats(all_stats, plot_type = "regulation_adj")
-plot_proteomic_stats(all_stats, plot_type = "heatmap")
-plot_proteomic_stats(all_stats, plot_type = "comparison")
+#plot_proteomic_stats(all_stats, plot_type = "summary")
+#plot_proteomic_stats(all_stats, plot_type = "regulation")
+#plot_proteomic_stats(all_stats, plot_type = "regulation_adj")
+#plot_proteomic_stats(all_stats, plot_type = "heatmap")
+#plot_proteomic_stats(all_stats, plot_type = "comparison")
