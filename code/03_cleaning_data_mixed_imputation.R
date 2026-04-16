@@ -5,7 +5,7 @@ source("../code/00_packages.R")
 
 # prot_data <- readxl::read_xlsx(path = paste0(output_path,"tables/cleaned_data.xlsx"))
 
-# Function takes as arguments 2 dataframes, one vector and one variable for the output path. One df with the protein data, other df with the experimental desing and a vector with the comparisons.
+# Function takes as arguments 2 dataframes, one vector and one variable for the output path. One df with the protein data, other df with the experimental design and a vector with the comparisons.
 
 # data_cleaning() -------------------------------------------------------
 # Full preprocessing pipeline: filtering → VSN normalization → mixed imputation.

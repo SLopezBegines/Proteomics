@@ -298,3 +298,9 @@ plot_proteomic_stats(all_stats, plot_type = "all")
 #plot_proteomic_stats(all_stats, plot_type = "heatmap")
 #plot_proteomic_stats(all_stats, plot_type = "comparison")
 ```
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```
