@@ -55,6 +55,7 @@ source("../code/aux_functions.R")
 Source the core pipeline modules. These scripts define the functions used throughout the analysis but do not execute any computation at this stage.
 
 ```{r load-functions, message=FALSE, warning=FALSE}
+source("../code/00_packages.R")
 source("../code/01_loading_data.R")
 source("../code/03_cleaning_data_mixed_imputation.R")
 source("../code/04_data_analysis.R")

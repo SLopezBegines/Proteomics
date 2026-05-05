@@ -68,9 +68,10 @@ data_cleaning <- function(prot_data, # input dataset
 
   # Plot a barplot of the protein identification overlap between samples
   p1 <- plot_frequency(data_se)
-  save_plot("protein_identification_overlap", p1, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 8)
+  save_plot("protein_identification_overlap", p1,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 8
+  )
 
   "This leaves our dataset with missing values, which need to be imputed.
 However, this should not be done for proteins that contain too many
@@ -89,15 +90,17 @@ plotted as well as the overlap in identifications between samples.
 "
   p2 <- plot_numbers(data_filt)
   save_plot("protein_per_sample", p2,
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 8)
-  
-  
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 8
+  )
+
+
   p3 <- plot_coverage(data_filt)
-  save_plot("protein_coverage", p3, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 8)
-  
+  save_plot("protein_coverage", p3,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 8
+  )
+
   # Normalization ####
   # The data is background corrected and normalized by variance stabilizing transformation (vsn).
   # Normalize the data
@@ -108,10 +111,11 @@ plotted as well as the overlap in identifications between samples.
   print(p)
 
   p4 <- plot_normalization(data_filt, data_norm)
-  save_plot("normalized_data", p4, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 8)
-  
+  save_plot("normalized_data", p4,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 8
+  )
+
 
   p <- p1 + p2 + p3 + p4 + plot_layout(ncol = 2) + plot_annotation(
     title = "Data overview",
@@ -119,11 +123,12 @@ plotted as well as the overlap in identifications between samples.
     caption = "Figures generated with the DEP package",
     tag_levels = "A"
   )
-  save_plot("QC_data_overview", p, 
-            output_dir = paste0(output_path, "figures"),
-            width = 16, height = 12)
-  
-   "The normalization can be assessed by plotting the standard deviation
+  save_plot("QC_data_overview", p,
+    output_dir = paste0(output_path, "figures"),
+    width = 16, height = 12
+  )
+
+  "The normalization can be assessed by plotting the standard deviation
 versus the mean intensity for each protein before and after normalization.
 Additionally, a PCA plot can be used to assess whether the replicates
 cluster together and whether there are any outliers. Both plots should
@@ -202,9 +207,10 @@ normalization."
     print(final_plot)
     # Guardar si se especifica output_path
     if (!is.null(output_path)) {
-      save_plot(file_prefix, p, 
-                output_dir = paste0(output_path, "figures"),
-                width = 12, height = 10)
+      save_plot(file_prefix, final_plot,
+        output_dir = paste0(output_path, "figures"),
+        width = 12, height = 10
+      )
       message("✅ Graph stored in ", output_path)
     }
 
@@ -252,10 +258,10 @@ proteins with at least one missing value are visualized. "
   # Step 3: Run dev.off() to create the file!
   dev.off()
   print(p)
-  
+
   # Incrementar contador global
   assign("image_number", image_number + 1, envir = .GlobalEnv)
-  
+
   "This heatmap indicates that missing values are highly biased to specific
 samples. To check whether missing values are biased to lower intense proteins, the densities and
 cumulative fractions are plotted for proteins with and without missing
@@ -263,10 +269,11 @@ values."
 
   # Plot intensity distributions and cumulative fraction of proteins with and without missing values
   p <- plot_detect(data_filt)
-  save_plot("protein_imputation", p, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 6)
-  
+  save_plot("protein_imputation", p,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 6
+  )
+
   'Indeed the proteins with missing values have on average low intensities.
 This data (MNAR and close to the detection limit) should be imputed by a
 left-censored imputation method, such as the quantile regression-based
@@ -327,8 +334,8 @@ specifically the impute function description for more information.'
     group_by(name, condition) %>%
     summarize(
       frac_NA = sum(is.na(intensity)) / n(), # fraction of missing values
-      num_NAs = sum(is.na(intensity)),        # absolute count of missing values
-      MNAR_flag = frac_NA >= fraction_NA,    # TRUE → treat as left-censored (MNAR)
+      num_NAs = sum(is.na(intensity)), # absolute count of missing values
+      MNAR_flag = frac_NA >= fraction_NA, # TRUE → treat as left-censored (MNAR)
       .groups = "drop"
     )
 
@@ -555,10 +562,11 @@ specifically the impute function description for more information.'
         y     = "SD after"
       ) +
       theme_minimal()
-    
-    save_plot("%02d_SD_before_after_scatter", p1, 
-              output_dir = paste0(output_path, "figures"),
-              width = 12, height = 16)
+
+    save_plot("%02d_SD_before_after_scatter", p1,
+      output_dir = paste0(output_path, "figures"),
+      width = 12, height = 16
+    )
   }
 
   # Example usage:
@@ -603,10 +611,11 @@ specifically the impute function description for more information.'
 
   # Visualization of imputation effect
   p <- plot_imputation(data_norm, data_imp, data_imp_man_gauss, data_imp_knn, manual_imputation, mixed_splited_imputation, data_imp_QRILC)
-  save_plot("protein_imputation_distribution", p, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 12)
-  
+  save_plot("protein_imputation_distribution", p,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 12
+  )
+
   # For our dataset, knn and mixed imputation result in less identified differential expressed proteins compared to the no imputation and MinProb. No imputation results in the identification of the most differentially expressed proteins in our dataset with many proteins missing values.
   # Note that the performance of the different imputation methods is data set-dependent. It is recommended to always carefully check the effect of filtering and data imputation on your results.
 
@@ -622,40 +631,46 @@ specifically the impute function description for more information.'
 
   # PCA MinProb
   pca_minprob <- plot_pca(dep_analysis_min, x = 2, y = 1, n = (length(dep_analysis_min)), point_size = 4) + ggtitle("PCA MinProb", subtitle = paste0(length(dep_analysis_min), " variable proteins"))
-  save_plot("PCA_MinProb", pca_minprob, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 6)
-  
+  save_plot("PCA_MinProb", pca_minprob,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 6
+  )
+
   # PCA Manual
   pca_manual_gauss <- plot_pca(dep_analysis_manual_gauss, x = 2, y = 1, n = (length(dep_analysis_manual_gauss)), point_size = 4) + ggtitle("PCA Manual", subtitle = paste0(length(dep_analysis_manual_gauss), " variable proteins"))
-  save_plot("PCA_Manual_Gauss", pca_manual_gauss, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 6)
-  
+  save_plot("PCA_Manual_Gauss", pca_manual_gauss,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 6
+  )
+
   # PCA KNN
   pca_knn <- plot_pca(dep_analysis_knn, x = 2, y = 1, n = (length(dep_analysis_knn)), point_size = 4) + ggtitle("PCA KNN", subtitle = paste0(length(dep_analysis_knn), " variable proteins"))
-  save_plot("PCA_KNN", pca_knn, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 6)
-  
+  save_plot("PCA_KNN", pca_knn,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 6
+  )
+
   # PCA Mixed Splited
   pca_mixed_splited <- plot_pca(dep_analysis_mixed_splited, x = 2, y = 1, n = (length(dep_analysis_mixed_splited)), point_size = 4) + ggtitle("PCA Mixed Splited Imputation", subtitle = paste0(length(dep_analysis_mixed_splited), " variable proteins"))
-  save_plot("PCA_Splited_Mixed", pca_mixed_splited, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 6)
-  
+  save_plot("PCA_Splited_Mixed", pca_mixed_splited,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 6
+  )
+
   # PCA manual_imputation
   pca_manual_value <- plot_pca(dep_analysis_manual_value, x = 2, y = 1, n = (length(dep_analysis_manual_value)), point_size = 4) + ggtitle("PCA Manual Imputation", subtitle = paste0(length(dep_analysis_manual_value), " variable proteins"))
-  save_plot("PCA_manual_imputation", pca_manual_value, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 6)
-  
+  save_plot("PCA_manual_imputation", pca_manual_value,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 6
+  )
+
   # PCA QRILC
   pca_QRILC <- plot_pca(dep_analysis_QRILC, x = 2, y = 1, n = (length(dep_analysis_QRILC)), point_size = 4) + ggtitle("PCA QRILC", subtitle = paste0(length(dep_analysis_QRILC), " variable proteins"))
-  save_plot("PCA_QRILC", pca_QRILC, 
-            output_dir = paste0(output_path, "figures"),
-            width = 8, height = 6)
-  
+  save_plot("PCA_QRILC", pca_QRILC,
+    output_dir = paste0(output_path, "figures"),
+    width = 8, height = 6
+  )
+
   # Patchwork of PCA plots
   pca_combined <- (pca_minprob | pca_manual_gauss) / (pca_manual_value | pca_QRILC) / (pca_knn | pca_mixed_splited) +
     plot_annotation(
@@ -664,10 +679,11 @@ specifically the impute function description for more information.'
       theme = theme(plot.title = element_text(size = 16, hjust = 0.5)),
       tag_levels = "A"
     )
-  save_plot("PCA_imputation_methods", pca_combined, 
-            output_dir = paste0(output_path, "figures"),
-            width = 12, height = 16)
-  
+  save_plot("PCA_imputation_methods", pca_combined,
+    output_dir = paste0(output_path, "figures"),
+    width = 12, height = 16
+  )
+
   # run_pca_hubert_analysis() ---------------------------------------------
   # Outlier detection using robust PCA (PCAHubert, rrcov package).
   # Classical PCA is sensitive to outliers; PCAHubert minimises their influence
@@ -725,9 +741,10 @@ specifically the impute function description for more information.'
       combined_plot <- wrap_plots(plots, ncol = 2) # Adjust ncol as needed
 
       # Save combined plot
-      save_plot("Combined_DD_Plots", combined_plot, 
-                output_dir = paste0(output_path, "figures"),
-                width = 12, height = 16)
+      save_plot("Combined_DD_Plots", combined_plot,
+        output_dir = paste0(output_path, "figures"),
+        width = 12, height = 16
+      )
     }
 
     # Guardar tabla consolidada de outliers
@@ -762,7 +779,7 @@ specifically the impute function description for more information.'
   DE_analysis <- function(se) {
     se %>%
       test_diff(., type = "manual", test = comparisons) %>%
-      add_rejections(., alpha = p_val, lfc = log2(FC)) %>%  # FC is log2 here
+      add_rejections(., alpha = p_val, lfc = log2(FC)) %>% # FC is log2 here
       get_results()
   }
 
