@@ -55,10 +55,8 @@ source("../code/aux_functions.R")
 Source the core pipeline modules. These scripts define the functions used throughout the analysis but do not execute any computation at this stage.
 
 ```{r load-functions, message=FALSE, warning=FALSE}
+#renv::restore()
 source("../code/00_packages.R")
-source("../code/01_loading_data.R")
-source("../code/03_cleaning_data_mixed_imputation.R")
-source("../code/04_data_analysis.R")
 ```
 
 ## Reading Raw Data
@@ -66,6 +64,7 @@ source("../code/04_data_analysis.R")
 Load the MaxQuant ProteinGroups output and apply initial preprocessing: zero values are replaced with NA (MaxQuant encodes missing LFQ intensities as 0), column names are standardized across different MaxQuant versions, and known contaminant proteins are identified and removed.
 
 ```{r load-data}
+source("../code/01_loading_data.R")
 prot_data <- readxl::read_xlsx(path = "../rawdata/ProteinGroups_Project_PXD031582.xlsx")
 loading_data(prot_data)
 ```
@@ -113,11 +112,11 @@ condition <- as.factor(c(
 ))
 
 replicate <- rep(1:4, times = 3)
-
+batch <- 1
 experiment <- rep("Lyso_IP_cln3", length(replicate))
 
 # --- Build and Export Design Matrix ---
-Exp_design <- cbind.data.frame(label, condition, replicate, columns_to_rename, experiment)
+Exp_design <- cbind.data.frame(label, condition, replicate, batch, columns_to_rename, experiment)
 print(Exp_design)
 
 Exp_design %>%
@@ -159,15 +158,28 @@ Perform differential expression using protein-wise linear models with empirical 
 
 The input is the imputed `SummarizedExperiment` object from the cleaning step. Output includes a results table with log2 fold-changes, p-values, and adjusted p-values for each comparison, exported as Excel.
 
+                               
+- BH adjusted p-value
+  Controls FDR ≤ alpha exactly, assuming π₀ = 1 (all proteins are null). That assumption is never literally true, so BH is always conservative — it systematically under-reports discoveries. Its guarantee is: among the 871 proteins called significant, at most 5% are expected false positives. This is the industry standard in the proteomics field.                                                                                                            
+                  
+- Storey q-value
+  Controls FDR ≤ alpha but estimates π₀ from the data (from the flat region of the p-value histogram near 1). Since π₀ < 1 in any real experiment, this is more honest and more powerful. The q-value of a protein means: "if I draw the significance threshold here, the expected FDR among all proteins above this threshold is q." Storey designed this specifically for high-throughput biology where many true signals exist simultaneously.                       
+                  
+- DEP adjusted p-value / fdrtool                                                                      
+  As established: this is pathologically conservative here. It is operating on eBayes-moderated t-statistics, which violate fdrtool's distributional assumptions (the eBayes shrinkage compresses t-stats toward zero, fdrtool reads this as "most are null" and overestimates π₀). You should not use this as your primary significance criterion.
+
+
+
 ```{r differential-expression}
-data_analysis(mixed_splited_imputation, Exp_design, comparisons, output_path)
+source("../code/04_data_analysis.R")
+data_analysis(mixed_splited_imputation, Exp_design, comparisons, output_path, adjusted_method = "BH")
 ```
 
 # Visualization
 
 Generate publication-ready plots from the differential expression results:
 
-- **Volcano plots**: log2FC vs -log10(p-value) for each comparison, with DE proteins highlighted
+- **Volcano plots**: log2FC vs -log10(q-value) for each comparison, with DE proteins highlighted. For q-value adjusted
 - **Heatmaps**: ComplexHeatmap clustering of significant proteins across all samples
 - **PCA biplots**: sample-level dimensionality reduction to assess group separation and outliers
 - **Barplots**: optional per-protein intensity barplots (disabled by default for performance)
@@ -175,7 +187,7 @@ Generate publication-ready plots from the differential expression results:
 All figures are exported in dual format (TIFF for publication, PDF for vector editing) with sequential numbering.
 
 ```{r plots, fig.width=10, fig.height=8}
-print_barplots <- 1  # Set to 1 to generate individual protein barplots (slow for large datasets)
+print_barplots <- 0  # Set to 1 to generate individual protein barplots (slow for large datasets)
 
 source("../code/05_Plots.R")
 ```

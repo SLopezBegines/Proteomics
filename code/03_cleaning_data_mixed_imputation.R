@@ -1,5 +1,5 @@
 # libraries ####
-source("../code/00_packages.R")
+# source("../code/00_packages.R")
 
 # Load data ####
 
@@ -777,12 +777,15 @@ specifically the impute function description for more information.'
   # significant proteins each method recovers. This is a diagnostic step only;
   # the definitive DE analysis uses mixed_splited_imputation in 04_data_analysis.R.
   DE_analysis <- function(se) {
-    se %>%
-      test_diff(., type = "manual", test = comparisons) %>%
-      add_rejections(., alpha = p_val, lfc = log2(FC)) %>% # FC is log2 here
+    se %>% # SummarizedExperiment (input data)
+      test_diff(.,
+        type = "manual", # "control" | "all" | "manual"
+        test = comparisons, # contrast strings (only for type="manual")
+        design_formula = formula(~ 0 + condition)
+      ) %>% # DEFAULT: cell-means
+      add_rejections(., alpha = p_val, lfc = FC) %>%
       get_results()
   }
-
   # DE analysis on no, knn, MinProb and mixed imputation
   no_imputation_results <- DE_analysis(data_norm)
   MinProb_imputation_results <- DE_analysis(data_imp)

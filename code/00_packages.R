@@ -35,7 +35,8 @@ libraries <- c(
   "tidyverse", "writexl", "BiocManager", "ggrepel", "knitr",
   "kableExtra", "openxlsx", "ggfortify", "ggpubr", "rbioapi",
   "mdatools", "pheatmap", "geneset", "rstatix", "genekitr", "rrcov", "venn", "ggpolypath",
-  "ggvenn", "ComplexUpset", "eulerr", "ggVennDiagram", "RColorBrewer", "patchwork"
+  "ggvenn", "ComplexUpset", "eulerr", "ggVennDiagram", "RColorBrewer", "patchwork",
+  "qvalue"
 )
 
 libraries_bioconductor <- c(
@@ -46,7 +47,7 @@ libraries_bioconductor <- c(
 
 install_and_load_library(libraries)
 install_and_load_library_bioconductor(libraries_bioconductor)
-renv::snapshot()
+#   renv::snapshot()
 
 rm("install_and_load_library_bioconductor", "install_and_load_library", "libraries", "libraries_bioconductor")
 # library(org.Dr.eg.db)#For Zebrafish. Change Dr by Mm or Hs for mouse or human
