@@ -194,7 +194,7 @@ source("../code/05_Plots.R")
 
 # Gene Ontology — Over-Representation Analysis (ORA)
 
-Identify enriched GO terms among differentially expressed proteins using `clusterProfiler::enrichGO()`. This is an ORA approach: it tests whether DE proteins are over-represented in specific GO categories compared to the full proteome background.
+<!-- Identify enriched GO terms among differentially expressed proteins using `clusterProfiler::enrichGO()`. This is an ORA approach: it tests whether DE proteins are over-represented in specific GO categories compared to the full proteome background. -->
 
 Configuration:
 
