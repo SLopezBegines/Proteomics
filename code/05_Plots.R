@@ -66,7 +66,7 @@ save_plot("PCA_loadings_p_value", pca_loadings,
 
 # Plot the Pearson correlation matrix
 # Step 1: Call the pdf command to start the plot
-filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_Correlation_matrix") # Name of output file.
+filename <- paste0(output_path, "figures/", sprintf("%03d", image_number), "_Correlation_matrix") # Name of output file.
 pdf(file = paste0(filename, pdf_extension)) # The height of the plot in inches
 p <- DEP::plot_cor(dep_analysis, significant = TRUE, lower = 0, upper = 1, pal = "Reds")
 print(p)
@@ -77,7 +77,7 @@ dev.off()
 # Incrementar contador global
 assign("image_number", image_number + 1, envir = .GlobalEnv)
 ### HeatMap ####
-filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_Heatmap_significant") # Name of output file.
+filename <- paste0(output_path, "figures/", sprintf("%03d", image_number), "_Heatmap_significant") # Name of output file.
 pdf(file = paste0(filename, pdf_extension))
 p <- DEP::plot_heatmap(dep_analysis,
   type = "centered", kmeans = TRUE,

@@ -17,8 +17,13 @@
 #   output_path      Base directory for all outputs (tables/, figures/, RData/)
 #   fraction_NA      Proteins with >= fraction_NA missing values in any condition are classified
 #                    as MNAR and imputed with a left-censored method (default 0.6)
-#   factor_SD_impute Width of the left-shifted Gaussian used for MNAR imputation, expressed
-#                    as a fraction of the global SD (default 0.05 = very narrow)
+#   factor_SD_impute Distance of the imputation center below the global minimum, expressed
+#                    as a fraction of the global SD (default 0.05).
+#                    value_impute = global_min - factor_SD_impute * sd
+#   factor_SD_scale  Spread of the truncated-normal draws around the imputation center,
+#                    expressed as a fraction of the global SD (default 0.3, matching the
+#                    'scale' parameter of MSnbase::impute(fun = "man")).
+#                    sd_scale = factor_SD_scale * sd
 #   mnar_var         MNAR imputation method passed to MSnbase::impute()
 #                    ("zero" | "MinProb" | "QRILC")
 #
@@ -27,13 +32,14 @@
 #   - Writes QC figures, RData objects and summary tables under output_path
 #   - Exports mixed_splited_imputation (SummarizedExperiment) to the global env
 #     for use in the next step (04_data_analysis.R)
-# -----------------------------------------------------------------------
+# ----------------------------------------------------------------------- #
 data_cleaning <- function(prot_data, # input dataset
                           Exp_design, # Experimental matrix
                           comparisons, # Comparisons to be made
                           output_path, # output path
                           fraction_NA = c(0.4, 0.5, 0.6),
                           factor_SD_impute = c(0.05, 0.1, 0.2),
+                          factor_SD_scale = 0.3,
                           mnar_var = c("zero", "MinProb", "QRILC")) {
   create_directories(paste0(output_path)) # Function from Globalvariables file to creates folder
 
@@ -243,21 +249,38 @@ To explore the pattern of missing values in the data, a heatmap is
 plotted indicating whether values are missing (0) or not (1). Only
 proteins with at least one missing value are visualized. "
 
-  filename <- paste0(output_path, "figures/", sprintf("%02d", image_number), "_missing_values_", name_df) # Name of output file.
+  filename <- paste0(output_path, "figures/", sprintf("%03d", image_number), "_missing_values_", name_df) # Name of output file.
+
+
   # Step 1: Call the pdf command to start the plot
+  # save as PDF
   pdf(
     file = paste0(filename, pdf_extension), # The directory you want to save the file in
     width = 4, # The width of the plot in inches
     height = 4
   ) # The height of the plot in inches
-
   # Step 2: Create the plot with R code
   p <- plot_missval(data_filt)
-  print(p)
+  draw(p)
+  # print(p)
+  # Step 3: Run dev.off() to create the file!
+  dev.off()
+  # Save as TIFF
+  tiff(
+    filename = paste0(filename, ".tiff"),
+    width = 4,
+    height = 4,
+    units = "in",
+    res = 300 # DPI for publication quality
+  )
+  p <- plot_missval(data_filt)
+  draw(p)
 
   # Step 3: Run dev.off() to create the file!
   dev.off()
-  print(p)
+
+  p <- plot_missval(data_filt)
+  draw(p)
 
   # Incrementar contador global
   assign("image_number", image_number + 1, envir = .GlobalEnv)
@@ -323,8 +346,18 @@ specifically the impute function description for more information.'
   # Strategy: classify each protein-per-condition independently as MNAR or MAR.
   # A protein is MNAR in a given condition if it is missing in >= fraction_NA
   # of replicates of that condition — indicating it is near/below the detection
-  # limit rather than stochastically absent. MNAR proteins are imputed with a
-  # value drawn from a left-shifted Gaussian anchored to the global minimum;
+  # limit rather than stochastically absent.
+  #
+  # MNAR imputation uses a two-step approach:
+  #   1. MSnbase::impute(mnar = "zero") sets MNAR NAs → 0 as a placeholder.
+  #   2. Those zeros are then replaced with draws from a left-truncated Gaussian:
+  #        N(mean = value_impute, sd = sd_scale) truncated above at global_min.
+  #      Truncating at global_min guarantees every imputed value falls below the
+  #      observed detection floor, consistent with the left-censored MNAR model.
+  #      Using a distribution (not a fixed scalar) preserves variability among
+  #      MNAR proteins, preventing artificial clustering in PCA and spikes in the
+  #      intensity histogram.
+  #
   # MAR proteins are imputed with kNN using observed values from other samples.
   # This per-condition split avoids over-imputation of true absences with kNN.
 
@@ -349,6 +382,9 @@ specifically the impute function description for more information.'
   # Global minimum for left-censored distribution
   global_min <- min(assay(data_norm), na.rm = TRUE)
   value_impute <- global_min - sd(assay(data_norm), na.rm = TRUE) * factor_SD_impute
+  # Spread of the truncated-normal draws: a fraction of the global SD.
+  # Default 0.3 matches the 'scale' parameter of MSnbase::impute(fun = "man").
+  sd_scale <- sd(assay(data_norm), na.rm = TRUE) * factor_SD_scale
   # 3. Process each condition separately so the MNAR/MAR classification is
   #    condition-specific. A protein absent only in one condition should be
   #    MNAR-imputed in that condition but kNN-imputed (MAR) in others.
@@ -395,8 +431,30 @@ specifically the impute function description for more information.'
   #    We combine the assays (columns) from each condition subset.
   imputed_assays <- lapply(imputed_list, assay)
   imputed_matrix <- do.call(cbind, imputed_assays)
-  # value_imputation to reemplaze zeros by mannual value
-  imputed_matrix[imputed_matrix == 0] <- value_impute
+
+  # Replace zeros (MNAR placeholders) with draws from a left-truncated Gaussian.
+  #
+  # Why truncated normal instead of a fixed scalar?
+  #   - A plain Gaussian centered at value_impute can produce draws above global_min,
+  #     contaminating the observed intensity range with imputed noise.
+  #   - rtruncnorm(..., b = global_min) truncates the distribution at the detection
+  #     floor so every draw is guaranteed to be below the observed minimum, consistent
+  #     with the left-censored MNAR assumption.
+  #   - Using a distribution (rather than a fixed scalar) preserves variability among
+  #     MNAR proteins, preventing artificial clustering in PCA and intensity spikes.
+  #
+  # Distribution parameters:
+  #   mean = value_impute  = global_min - factor_SD_impute * sd  (center, below detection floor)
+  #   sd   = sd_scale      = factor_SD_scale * sd                (spread, default 0.3 × sd)
+  #   b    = global_min                                          (upper truncation point)
+  n_zeros <- sum(imputed_matrix == 0)
+  imputed_matrix[imputed_matrix == 0] <- truncnorm::rtruncnorm(
+    n    = n_zeros,
+    a    = -Inf,
+    b    = global_min, # upper bound: no imputed value can exceed the detection floor
+    mean = value_impute, # center: factor_SD_impute SDs below global minimum
+    sd   = sd_scale # spread: factor_SD_scale fraction of global SD (default 0.3)
+  )
 
   # 5. Replace the assay in the original SummarizedExperiment with the imputed matrix.
   #    This creates a new SummarizedExperiment with imputed data.
@@ -410,7 +468,7 @@ specifically the impute function description for more information.'
       names_sep = "_"
     ) %>%
     dplyr::rename(genename = name)
-  # Ahora agrega proteins_MNAR como metadata adicional:
+  # Now, add proteins_MNAR as aditional metadata:
   metadata(mixed_splited_imputation)$proteins_MNAR <- proteins_MNAR
 
   # Now mixed_imputation contains the imputed data.
@@ -422,7 +480,7 @@ specifically the impute function description for more information.'
   # (slope ≈ 1, intercept ≈ 0 in the before-vs-after scatter). Methods that
   # severely inflate or deflate SD distort the downstream limma model.
   # Exports a scatter plot, a wide SD table, and a linear model summary per method.
-  # -----------------------------------------------------------------------
+  # ----------------------------------------------------------------------- #
   compare_sd_imputations <- function(data_norm, impute_list, output_path) {
     # 1) SD before
     sd_before_df <- get_df_long(data_norm) %>%

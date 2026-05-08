@@ -337,7 +337,9 @@ argument test.'
 
   adjusted_plot <- pval_plot / p.adj_plot / qval_plot / holm_plot
 
-  save_plot("pq_value_distibution", adjusted_plot)
+  save_plot("pq_value_distibution", adjusted_plot,
+    output_dir = paste0(output_path, "figures")
+  )
 
   # Number of significant proteins by pval/adj.pval/qval ####
   n_significant_adjp <- data_results %>%

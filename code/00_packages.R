@@ -36,7 +36,7 @@ libraries <- c(
   "kableExtra", "openxlsx", "ggfortify", "ggpubr", "rbioapi",
   "mdatools", "pheatmap", "geneset", "rstatix", "genekitr", "rrcov", "venn", "ggpolypath",
   "ggvenn", "ComplexUpset", "eulerr", "ggVennDiagram", "RColorBrewer", "patchwork",
-  "qvalue"
+  "qvalue", "truncnorm"
 )
 
 libraries_bioconductor <- c(

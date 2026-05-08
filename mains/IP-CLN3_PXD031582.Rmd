@@ -140,13 +140,14 @@ The function also applies VSN (Variance Stabilizing Normalization) and generates
 
 ```{r data-cleaning}
 source("../code/03_cleaning_data_mixed_imputation.R")
-
+image_number <- 1  # Reset figure numbering for the cleaning step
 data_cleaning(
   prot_data,
   Exp_design,
   comparisons,
   output_path,
   fraction_NA     = 0.6,
+  factor_SD_scale = 0.3,
   factor_SD_impute = 0.05,
   mnar_var         = "zero"
 )
