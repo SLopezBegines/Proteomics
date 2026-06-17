@@ -361,10 +361,10 @@ argument test.'
     c(n_significant_pval, n_significant_adjp, n_significant_qval, n_significant_holmval)
   )
   colnames(n_significant) <- c("N significant proteins by", "Number of proteins")
-
+  n_significant |>    write_xlsx(paste0(output_path, "tables/number_significant_proteins_by p-value.xlsx"))
   print(n_significant)
 
-  # Export results ####
+# Export results ####
   significant_adjusted_data <- data_results %>% filter(significant)
   significant_pval_data <- data_results %>% filter(significance_pval)
   significant_qval_data <- data_results %>% filter(significance_qval)
