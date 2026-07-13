@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>dep_hypothesis_testing_guide</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="DEP_hypothesis_testing_guide_files/libs/clipboard/clipboard.min.js"></script>
+<script src="DEP_hypothesis_testing_guide_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="DEP_hypothesis_testing_guide_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="DEP_hypothesis_testing_guide_files/libs/quarto-html/popper.min.js"></script>
+<script src="DEP_hypothesis_testing_guide_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="DEP_hypothesis_testing_guide_files/libs/quarto-html/anchor.min.js"></script>
+<link href="DEP_hypothesis_testing_guide_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="DEP_hypothesis_testing_guide_files/libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="DEP_hypothesis_testing_guide_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="DEP_hypothesis_testing_guide_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="DEP_hypothesis_testing_guide_files/libs/bootstrap/bootstrap-dc12b302c5bafdd0b017a3c523f5cfd8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+
+<section id="hypothesis-testing-in-dep-design-matrix-empirical-bayes-and-fdr" class="level1">
+<h1>Hypothesis Testing in DEP: Design Matrix, Empirical Bayes, and FDR</h1>
+<blockquote class="blockquote">
+<p><strong>Audience:</strong> Data scientists working with label-free quantification (LFQ) proteomics data using the <a href="https://bioconductor.org/packages/DEP/">DEP</a> Bioconductor package.<br>
+<strong>Version context:</strong> DEP 1.32.0, limma ≥ 3.50, R ≥ 4.x<br>
+<strong>Reuse:</strong> This document is design-agnostic in its explanations; only the code examples reference the CTRL/KO/WT experiment from this repository. Replace those with your own conditions and comparisons.</p>
+</blockquote>
+<hr>
+<section id="table-of-contents" class="level2">
+<h2 class="anchored" data-anchor-id="table-of-contents">Table of Contents</h2>
+<ol type="1">
+<li><a href="#1-the-statistical-pipeline-at-a-glance">The Statistical Pipeline at a Glance</a></li>
+<li><a href="#2-empirical-bayes-moderation-limma">Empirical Bayes Moderation (limma)</a></li>
+<li><a href="#3-design-matrix-0--condition-vs-condition">Design Matrix: <code>~0 + condition</code> vs <code>~condition</code></a></li>
+<li><a href="#4-the-formula-argument-in-test_diff">The <code>formula</code> Argument in <code>test_diff()</code></a></li>
+<li><a href="#5-fdr-concepts-bh-and-storeys-q-value">FDR Concepts: BH and Storey’s q-value</a></li>
+<li><a href="#6-fdr-options-in-dep-and-how-to-override">FDR Options in DEP and How to Override</a></li>
+<li><a href="#7-which-fdr-method-is-best-for-your-design">Which FDR Method Is Best for Your Design?</a></li>
+<li><a href="#8-code-inconsistency-in-this-repository">Code Inconsistency in This Repository</a></li>
+<li><a href="#9-implementing-storeys-q-value-as-a-drop-in-extension">Implementing Storey’s q-value as a Drop-in Extension</a></li>
+<li><a href="#10-decision-checklist">Decision Checklist</a></li>
+</ol>
+<hr>
+</section>
+<section id="the-statistical-pipeline-at-a-glance" class="level2">
+<h2 class="anchored" data-anchor-id="the-statistical-pipeline-at-a-glance">1. The Statistical Pipeline at a Glance</h2>
+<p>When you call <code>DEP::test_diff()</code>, the following sequence happens internally:</p>
+<pre><code>SummarizedExperiment (normalized, imputed intensities)
+        │
+        ▼
+ design matrix  ← built from design_formula
+        │
+        ▼
+ limma::lmFit()           per-protein linear model
+        │
+        ▼
+ limma::makeContrasts()   contrast matrix from "A_vs_B" strings
+ limma::contrasts.fit()   re-parameterize to contrasts
+        │
+        ▼
+ limma::eBayes()          empirical Bayes variance shrinkage
+        │
+        ▼
+ limma::topTable(         extract results per contrast
+   adjust.method = "BH"   ← BH FDR correction, hardcoded in DEP
+ )
+        │
+        ▼
+ add_rejections(          apply alpha and lfc thresholds
+   alpha, lfc
+ )</code></pre>
+<p>Each step is described in detail in the sections below.</p>
+<hr>
+</section>
+<section id="empirical-bayes-moderation-limma" class="level2">
+<h2 class="anchored" data-anchor-id="empirical-bayes-moderation-limma">2. Empirical Bayes Moderation (limma)</h2>
+<p><a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> ### The core problem limma solves</p>
+<p>In a standard t-test, the variance estimate for each protein is computed from its own replicates only. With 4 replicates per condition (as in this experiment), variance estimates are <strong>noisy</strong> — a protein could look significant simply because its variance happened to be estimated very low by chance.</p>
+<p>limma solves this with <strong>empirical Bayes (EB) moderation</strong>: instead of using each protein’s own variance estimate in isolation, it borrows information across all proteins to produce a more stable estimate.</p>
+<section id="the-mathematical-model" class="level3">
+<h3 class="anchored" data-anchor-id="the-mathematical-model">The mathematical model</h3>
+<p>For protein <span class="math inline">\(g\)</span> in contrast <span class="math inline">\(k\)</span>, the standard linear model is:</p>
+<p><span class="math display">\[\hat{\beta}_{gk} \sim N(\beta_{gk},\ \sigma_g^2 (X^TX)^{-1})\]</span></p>
+<p>where <span class="math inline">\(\beta_{gk}\)</span> is the true log2 fold-change, and <span class="math inline">\(\sigma_g^2\)</span> is the protein-specific residual variance.</p>
+<p><strong>The empirical Bayes prior</strong> assumes that the inverse variances follow a scaled chi-squared distribution:</p>
+<p><span class="math display">\[\frac{1}{\sigma_g^2} \sim \frac{1}{d_0 s_0^2} \chi^2_{d_0}\]</span></p>
+<p>where <span class="math inline">\(d_0\)</span> and <span class="math inline">\(s_0^2\)</span> are estimated from the data across all proteins. This yields the <strong>moderated variance</strong>:</p>
+<p><span class="math display">\[\tilde{s}_g^2 = \frac{d_0 s_0^2 + d_g s_g^2}{d_0 + d_g}\]</span></p>
+<p>The moderated variance <span class="math inline">\(\tilde{s}_g^2\)</span> is a weighted average between the <strong>global prior variance</strong> <span class="math inline">\(s_0^2\)</span> (shared information from all proteins) and the <strong>protein-specific variance</strong> <span class="math inline">\(s_g^2\)</span> (measured from its own replicates), weighted by their respective degrees of freedom.</p>
+<p>The moderated t-statistic then uses <span class="math inline">\(\tilde{s}_g^2\)</span> instead of <span class="math inline">\(s_g^2\)</span>:</p>
+<p><span class="math display">\[\tilde{t}_{gk} = \frac{\hat{\beta}_{gk}}{\tilde{s}_g \sqrt{v_k}}\]</span></p>
+<p>This follows a t-distribution with <span class="math inline">\(d_0 + d_g\)</span> degrees of freedom (more degrees of freedom than a standard t-test → less extreme p-values for poorly estimated proteins).</p>
+</section>
+<section id="what-this-means-in-practice" class="level3">
+<h3 class="anchored" data-anchor-id="what-this-means-in-practice">What this means in practice</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Situation</th>
+<th>Without EB</th>
+<th>With EB</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Protein with low variance by chance</td>
+<td>Falsely significant</td>
+<td>Pulled toward global variance — less extreme</td>
+</tr>
+<tr class="even">
+<td>Protein with high variance by chance</td>
+<td>Falsely non-significant</td>
+<td>Pulled toward global variance — less conservative</td>
+</tr>
+<tr class="odd">
+<td>Protein with many NAs, few replicates</td>
+<td>Very unstable</td>
+<td>Strongly borrows from global prior</td>
+</tr>
+<tr class="even">
+<td>Large experiment (many replicates)</td>
+<td>Both converge</td>
+<td>Borrowing effect diminishes — both agree</td>
+</tr>
+</tbody>
+</table>
+<p>With only 4 replicates per condition (as in this repository), EB moderation provides a substantial stability benefit. The prior is estimated across all proteins quantified (~thousands in a typical LFQ experiment), so the estimates are robust.</p>
+<hr>
+</section>
+</section>
+<section id="design-matrix-0-condition-vs-condition" class="level2">
+<h2 class="anchored" data-anchor-id="design-matrix-0-condition-vs-condition">3. Design Matrix: <code>~0 + condition</code> vs <code>~condition</code></h2>
+<p>The design matrix encodes which samples belong to which experimental group. The choice of parameterization changes how contrasts are specified, <strong>not</strong> the final statistical results for the same comparison.</p>
+<section id="condition-treatment-contrast-reference-level-parameterization" class="level3">
+<h3 class="anchored" data-anchor-id="condition-treatment-contrast-reference-level-parameterization"><code>~condition</code> — Treatment-contrast (reference-level) parameterization</h3>
+<p>This is R’s default when a factor is included in a formula with an intercept.</p>
+<p>Assuming <code>condition</code> levels are <code>CTRL</code>, <code>KO</code>, <code>WT</code> (alphabetical → CTRL is reference):</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Coefficient</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>(Intercept)</code></td>
+<td>mean of CTRL (reference level)</td>
+</tr>
+<tr class="even">
+<td><code>conditionKO</code></td>
+<td>KO − CTRL</td>
+</tr>
+<tr class="odd">
+<td><code>conditionWT</code></td>
+<td>WT − CTRL</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design matrix</strong> (12 samples, 4 per group):</p>
+<pre><code>          Intercept  conditionKO  conditionWT
+CTRL_1        1            0            0
+CTRL_2        1            0            0
+CTRL_3        1            0            0
+CTRL_4        1            0            0
+KO_1          1            1            0
+KO_2          1            1            0
+KO_3          1            1            0
+KO_4          1            1            0
+WT_1          1            0            1
+WT_2          1            0            1
+WT_3          1            0            1
+WT_4          1            0            1</code></pre>
+<p>To test KO_vs_WT you must construct the contrast <code>conditionKO - conditionWT</code>, which is less intuitive. Use <code>type = "control"</code> in <code>test_diff()</code> when adopting this parameterization.</p>
+</section>
+<section id="condition-cell-means-no-intercept-parameterization" class="level3">
+<h3 class="anchored" data-anchor-id="condition-cell-means-no-intercept-parameterization"><code>~0 + condition</code> — Cell-means (no-intercept) parameterization</h3>
+<p>Removing the intercept with <code>0</code> or <code>-1</code> gives each level its own coefficient equal to the group mean:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Coefficient</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>conditionCTRL</code></td>
+<td>mean of CTRL</td>
+</tr>
+<tr class="even">
+<td><code>conditionKO</code></td>
+<td>mean of KO</td>
+</tr>
+<tr class="odd">
+<td><code>conditionWT</code></td>
+<td>mean of WT</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design matrix:</strong></p>
+<pre><code>          conditionCTRL  conditionKO  conditionWT
+CTRL_1         1              0            0
+CTRL_2         1              0            0
+CTRL_3         1              0            0
+CTRL_4         1              0            0
+KO_1           0              1            0
+KO_2           0              1            0
+KO_3           0              1            0
+KO_4           0              1            0
+WT_1           0              0            1
+WT_2           0              0            1
+WT_3           0              0            1
+WT_4           0              0            1</code></pre>
+<p>Each contrast maps directly to a difference of group means:</p>
+<ul>
+<li><code>CTRL_vs_WT</code> → <code>conditionCTRL - conditionWT</code></li>
+<li><code>CTRL_vs_KO</code> → <code>conditionCTRL - conditionKO</code></li>
+<li><code>KO_vs_WT</code> → <code>conditionKO - conditionWT</code></li>
+</ul>
+<p>This is why <code>type = "manual"</code> and <code>~0 + condition</code> work naturally together.</p>
+</section>
+<section id="which-to-choose" class="level3">
+<h3 class="anchored" data-anchor-id="which-to-choose">Which to choose?</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Scenario</th>
+<th>Recommended parameterization</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>You want all pairwise comparisons</td>
+<td><code>~0 + condition</code> + <code>type = "manual"</code></td>
+</tr>
+<tr class="even">
+<td>You have a clear reference group and compare everything to it</td>
+<td><code>~condition</code> + <code>type = "control"</code></td>
+</tr>
+<tr class="odd">
+<td>You want DEP to auto-generate all pairwise contrasts</td>
+<td><code>~0 + condition</code> + <code>type = "all"</code></td>
+</tr>
+<tr class="even">
+<td>You want DEP to auto-generate comparisons to one control</td>
+<td><code>~condition</code> + <code>type = "control"</code> + <code>control = "CTRL"</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote class="blockquote">
+<p><strong>This repository</strong> uses <code>~0 + condition</code> + <code>type = "manual"</code> + explicit <code>comparisons</code> vector → correct choice for the experimental design.</p>
+</blockquote>
+<hr>
+</section>
+</section>
+<section id="the-formula-argument-in-test_diff" class="level2">
+<h2 class="anchored" data-anchor-id="the-formula-argument-in-test_diff">4. The <code>formula</code> Argument in <code>test_diff()</code></h2>
+<section id="function-signature" class="level3">
+<h3 class="anchored" data-anchor-id="function-signature">Function signature</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">test_diff</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  se,                                  <span class="co"># SummarizedExperiment (input data)</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  type,                                <span class="co"># "control" | "all" | "manual"</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">control    =</span> <span class="cn">NULL</span>,                   <span class="co"># reference group (only for type="control")</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">test       =</span> <span class="cn">NULL</span>,                   <span class="co"># contrast strings (only for type="manual")</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">design_formula =</span> <span class="fu">formula</span>(<span class="sc">~</span><span class="dv">0</span> <span class="sc">+</span> condition)  <span class="co"># DEFAULT: cell-means</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<blockquote class="blockquote">
+<p><strong>Default:</strong> <code>design_formula = formula(~0 + condition)</code> — so if you omit the argument, DEP uses cell-means parameterization.</p>
+</blockquote>
+</section>
+<section id="how-the-formula-affects-hypothesis-testing-step-by-step" class="level3">
+<h3 class="anchored" data-anchor-id="how-the-formula-affects-hypothesis-testing-step-by-step">How the formula affects hypothesis testing step by step</h3>
+<ol type="1">
+<li><p><strong>Design matrix construction:</strong> <code>model.matrix(design_formula, data = colData(se))</code> produces the numeric matrix that encodes your experimental groups.</p></li>
+<li><p><strong>Contrast generation:</strong> depending on <code>type</code>:</p>
+<ul>
+<li><code>"manual"</code>: DEP parses each string in <code>test</code> (e.g.&nbsp;<code>"CTRL_vs_WT"</code>) by splitting on <code>"_vs_"</code> and builds a contrast vector <code>conditionCTRL - conditionWT</code>.</li>
+<li><code>"control"</code>: DEP generates one contrast per non-reference group.</li>
+<li><code>"all"</code>: DEP generates all pairwise contrasts.</li>
+</ul></li>
+<li><p><strong>Model fitting:</strong> <code>lmFit(assay(se), design)</code> — the design matrix determines which samples contribute to each group mean coefficient.</p></li>
+<li><p><strong>Contrast testing:</strong> <code>contrasts.fit()</code> re-parameterizes the model to the specified contrasts, then <code>eBayes()</code> applies moderation.</p></li>
+</ol>
+</section>
+<section id="what-variables-can-appear-in-the-formula" class="level3">
+<h3 class="anchored" data-anchor-id="what-variables-can-appear-in-the-formula">What variables can appear in the formula?</h3>
+<p>The formula can include any column from <code>colData(se)</code>. Most commonly:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Formula</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>~0 + condition</code></td>
+<td>Group means only (most common)</td>
+</tr>
+<tr class="even">
+<td><code>~0 + condition + batch</code></td>
+<td>Correct for batch effects (one continuous or categorical covariate)</td>
+</tr>
+<tr class="odd">
+<td><code>~0 + condition + sex</code></td>
+<td>Correct for sex as a covariate</td>
+</tr>
+<tr class="even">
+<td><code>~0 + condition + replicate</code></td>
+<td>Block on replicate if it is a technical/biological blocking factor</td>
+</tr>
+</tbody>
+</table>
+<blockquote class="blockquote">
+<p><strong>Warning:</strong> only add covariates to the formula if they represent a real source of variation you want to remove. Adding uninformative covariates reduces degrees of freedom and statistical power.</p>
+</blockquote>
+</section>
+<section id="how-to-select-the-formula-for-this-experiment" class="level3">
+<h3 class="anchored" data-anchor-id="how-to-select-the-formula-for-this-experiment">How to select the formula for this experiment</h3>
+<p>The experimental design is: - 3 conditions: CTRL, KO, WT - 4 replicates each (n = 12 total) - No batch variables recorded - Replicates are independent biological replicates</p>
+<p>→ Correct formula: <code>formula(~0 + condition)</code> — as used in <code>04_data_analysis.R</code>.</p>
+<p>If a batch variable were present (e.g., samples processed on two different days), you would extend it:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># hypothetical batch correction</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>design_formula <span class="ot">=</span> <span class="fu">formula</span>(<span class="sc">~</span><span class="dv">0</span> <span class="sc">+</span> condition <span class="sc">+</span> batch)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<hr>
+</section>
+</section>
+<section id="fdr-concepts-bh-and-storeys-q-value" class="level2">
+<h2 class="anchored" data-anchor-id="fdr-concepts-bh-and-storeys-q-value">5. FDR Concepts: BH and Storey’s q-value</h2>
+<section id="the-multiple-testing-problem" class="level3">
+<h3 class="anchored" data-anchor-id="the-multiple-testing-problem">The multiple testing problem</h3>
+<p>When testing thousands of proteins simultaneously, false positives accumulate. If you apply a nominal p-value threshold of 0.05 to 3000 proteins, you expect ~150 false positives by chance alone under the null.</p>
+<p><strong>False Discovery Rate (FDR)</strong> is the expected proportion of false positives among all rejected tests:</p>
+<p><span class="math display">\[FDR = E\left[\frac{V}{R}\right]\]</span></p>
+<p>where <span class="math inline">\(V\)</span> = false positives, <span class="math inline">\(R\)</span> = total rejections. FDR control is less stringent than Bonferroni (which controls the probability of <em>any</em> false positive), making it appropriate for exploratory biological discovery.</p>
+</section>
+<section id="benjamini-hochberg-bh-1995" class="level3">
+<h3 class="anchored" data-anchor-id="benjamini-hochberg-bh-1995">Benjamini-Hochberg (BH, 1995)</h3>
+<p>BH is the standard FDR correction. Given <span class="math inline">\(m\)</span> tests with p-values <span class="math inline">\(p_{(1)} \leq p_{(2)} \leq \cdots \leq p_{(m)}\)</span>, the BH procedure rejects all <span class="math inline">\(H_{(i)}\)</span> where:</p>
+<p><span class="math display">\[p_{(i)} \leq \frac{i \cdot \alpha}{m}\]</span></p>
+<p>The BH-adjusted p-value for rank <span class="math inline">\(i\)</span> is:</p>
+<p><span class="math display">\[p^{adj}_{(i)} = \min_{j \geq i}\left(\frac{m}{j} \cdot p_{(j)}\right)\]</span></p>
+<p><strong>Key assumption:</strong> BH controls FDR at level <span class="math inline">\(\alpha\)</span> assuming <span class="math inline">\(\pi_0 = 1\)</span>, meaning it assumes <strong>all</strong> null hypotheses are true. This is <strong>conservative</strong> when many proteins are truly differentially expressed (i.e., <span class="math inline">\(\pi_0 &lt; 1\)</span>).</p>
+</section>
+<section id="storeys-q-value-2002" class="level3">
+<h3 class="anchored" data-anchor-id="storeys-q-value-2002">Storey’s q-value (2002)</h3>
+<p>The q-value method improves on BH by estimating <span class="math inline">\(\pi_0\)</span> — the proportion of truly null hypotheses — directly from the observed p-value distribution.</p>
+<p><span class="math display">\[q_i = \frac{\hat{\pi}_0 \cdot m \cdot p_i}{|\{j : p_j \leq p_i\}|}\]</span></p>
+<p>The intuition: if you look at p-values near 1 (where almost all are null), their density tells you <span class="math inline">\(\hat{\pi}_0\)</span>. If <span class="math inline">\(\hat{\pi}_0 = 0.8\)</span>, then only 80% of the tests are null, and the BH correction (which assumed 100%) is too conservative.</p>
+<p><strong>Comparison:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Property</th>
+<th>BH</th>
+<th>Storey q-value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Controls FDR?</td>
+<td>Yes, at exactly <span class="math inline">\(\alpha\)</span></td>
+<td>Yes, adaptively</td>
+</tr>
+<tr class="even">
+<td>Assumes <span class="math inline">\(\pi_0\)</span></td>
+<td>1 (conservative)</td>
+<td>Estimated from data</td>
+</tr>
+<tr class="odd">
+<td>Power when <span class="math inline">\(\pi_0 &lt; 1\)</span></td>
+<td>Lower</td>
+<td>Higher</td>
+</tr>
+<tr class="even">
+<td>Power when <span class="math inline">\(\pi_0 = 1\)</span></td>
+<td>Identical</td>
+<td>Identical</td>
+</tr>
+<tr class="odd">
+<td>Requires p-value distribution</td>
+<td>No</td>
+<td>Yes (should be uniform under null)</td>
+</tr>
+<tr class="even">
+<td>Risk</td>
+<td>None (conservative)</td>
+<td>Unstable if few tests or non-uniform null</td>
+</tr>
+</tbody>
+</table>
+<section id="visual-intuition-p-value-histogram" class="level4">
+<h4 class="anchored" data-anchor-id="visual-intuition-p-value-histogram">Visual intuition: p-value histogram</h4>
+<pre><code>Count
+  │  ████                     ← excess at low p-values = true positives
+  │  ████
+  │  ████ ████
+  │  ████ ████ ██ ██ ██ ██ ██ ← flat part ≈ null distribution
+  └─────────────────────────────── p-value
+     0   0.2  0.4  0.6  0.8  1.0</code></pre>
+<ul>
+<li>The flat part at high p-values estimates <span class="math inline">\(\hat{\pi}_0 \cdot m\)</span> (expected null count).</li>
+<li>Storey uses this to calculate how conservative BH is being.</li>
+</ul>
+</section>
+</section>
+<section id="when-does-the-choice-matter-most" class="level3">
+<h3 class="anchored" data-anchor-id="when-does-the-choice-matter-most">When does the choice matter most?</h3>
+<p>The difference between BH and q-value is largest when: - Many proteins are truly DE (e.g., global treatment effect, strong KO phenotype) - Sample sizes are small (so power is a concern) - The number of tests is large (thousands of proteins → larger multiple testing burden)</p>
+<p>Both methods converge when <span class="math inline">\(\pi_0 \approx 1\)</span> (very few true positives) or when sample sizes are large.</p>
+<hr>
+</section>
+</section>
+<section id="fdr-options-in-dep-and-how-to-override" class="level2">
+<h2 class="anchored" data-anchor-id="fdr-options-in-dep-and-how-to-override">6. FDR Options in DEP and How to Override</h2>
+<section id="what-dep-exposes" class="level3">
+<h3 class="anchored" data-anchor-id="what-dep-exposes">What DEP exposes</h3>
+<p>DEP 1.32.0 does <strong>not</strong> expose a <code>method</code> argument for FDR correction. The BH method is hardcoded inside <code>test_diff()</code> via:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># DEP source — simplified</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>limma<span class="sc">::</span><span class="fu">topTable</span>(fit, <span class="at">coef =</span> contrast, <span class="at">adjust.method =</span> <span class="st">"BH"</span>, <span class="at">number =</span> <span class="cn">Inf</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The <code>add_rejections()</code> function then simply applies thresholds to the <code>p.adj</code> column that <code>test_diff()</code> already computed:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">add_rejections</span>(dep, <span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">lfc =</span> <span class="dv">1</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># marks as significant: p.adj &lt; alpha AND abs(ratio) &gt; lfc</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>There is no FDR method argument in <code>add_rejections()</code> either.</p>
+</section>
+<section id="available-strategies-to-use-alternative-fdr-methods" class="level3">
+<h3 class="anchored" data-anchor-id="available-strategies-to-use-alternative-fdr-methods">Available strategies to use alternative FDR methods</h3>
+<section id="strategy-a-post-hoc-q-value-on-extracted-p-values-recommended" class="level4">
+<h4 class="anchored" data-anchor-id="strategy-a-post-hoc-q-value-on-extracted-p-values-recommended">Strategy A: Post-hoc q-value on extracted p-values (recommended)</h4>
+<p>Run DEP normally to get results, then replace or supplement <code>p.adj</code> with q-values:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(qvalue)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">get_results</span>(dep_analysis)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Apply q-value per comparison</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (comp <span class="cf">in</span> comparisons) {</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  pval_col  <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_p.val"</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  qval_col  <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_q.val"</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  pvals <span class="ot">&lt;-</span> results[[pval_col]]</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># qvalue() requires all p-values; NA causes failure</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  valid <span class="ot">&lt;-</span> <span class="sc">!</span><span class="fu">is.na</span>(pvals)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  q_out <span class="ot">&lt;-</span> <span class="fu">qvalue</span>(pvals[valid])</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  results[[qval_col]] <span class="ot">&lt;-</span> <span class="cn">NA_real_</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>  results[[qval_col]][valid] <span class="ot">&lt;-</span> q_out<span class="sc">$</span>qvalues</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Then filter on <code>q.val</code> instead of <code>p.adj</code>.</p>
+</section>
+<section id="strategy-b-apply-p.adjust-with-any-method-to-the-raw-p-values" class="level4">
+<h4 class="anchored" data-anchor-id="strategy-b-apply-p.adjust-with-any-method-to-the-raw-p-values">Strategy B: Apply <code>p.adjust()</code> with any method to the raw p-values</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">get_results</span>(dep_analysis)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (comp <span class="cf">in</span> comparisons) {</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  pval_col <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_p.val"</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  adj_col  <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_p.adj_holm"</span>)   <span class="co"># example: Holm-Bonferroni</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  results[[adj_col]] <span class="ot">&lt;-</span> <span class="fu">p.adjust</span>(results[[pval_col]], <span class="at">method =</span> <span class="st">"holm"</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Supported <code>method</code> values in <code>p.adjust()</code>:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Type</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>"BH"</code></td>
+<td>FDR (Benjamini-Hochberg)</td>
+<td>Default; balanced power/control</td>
+</tr>
+<tr class="even">
+<td><code>"BY"</code></td>
+<td>FDR (Benjamini-Yekutieli)</td>
+<td>When tests are positively dependent (correlated proteins)</td>
+</tr>
+<tr class="odd">
+<td><code>"bonferroni"</code></td>
+<td>FWER</td>
+<td>Very few tests; strict error control required</td>
+</tr>
+<tr class="even">
+<td><code>"holm"</code></td>
+<td>FWER</td>
+<td>Step-down Bonferroni; slightly more powerful</td>
+</tr>
+<tr class="odd">
+<td><code>"fdr"</code></td>
+<td>Alias for “BH”</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td><code>"none"</code></td>
+<td>No correction</td>
+<td>Only for visualization, never for publication</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="strategy-c-extend-add_rejections-to-use-q-values" class="level4">
+<h4 class="anchored" data-anchor-id="strategy-c-extend-add_rejections-to-use-q-values">Strategy C: Extend <code>add_rejections()</code> to use q-values</h4>
+<p>If you want to keep the DEP object structure, add a custom post-processing step:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>add_qvalue_rejections <span class="ot">&lt;-</span> <span class="cf">function</span>(dep, <span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">lfc =</span> <span class="dv">1</span>, comparisons) {</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  results_df <span class="ot">&lt;-</span> <span class="fu">get_results</span>(dep)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (comp <span class="cf">in</span> comparisons) {</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    pval_col <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_p.val"</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    qval_col <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_q.val"</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    sig_col  <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_significant_qval"</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    valid <span class="ot">&lt;-</span> <span class="sc">!</span><span class="fu">is.na</span>(results_df[[pval_col]])</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    q_out <span class="ot">&lt;-</span> qvalue<span class="sc">::</span><span class="fu">qvalue</span>(results_df[[pval_col]][valid])</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    results_df[[qval_col]] <span class="ot">&lt;-</span> <span class="cn">NA_real_</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    results_df[[qval_col]][valid] <span class="ot">&lt;-</span> q_out<span class="sc">$</span>qvalues</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    results_df[[sig_col]] <span class="ot">&lt;-</span> results_df[[qval_col]] <span class="sc">&lt;</span> alpha <span class="sc">&amp;</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">abs</span>(results_df[[<span class="fu">paste0</span>(comp, <span class="st">"_ratio"</span>)]]) <span class="sc">&gt;</span> lfc</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(results_df)</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<hr>
+</section>
+</section>
+</section>
+<section id="which-fdr-method-is-best-for-your-design" class="level2">
+<h2 class="anchored" data-anchor-id="which-fdr-method-is-best-for-your-design">7. Which FDR Method Is Best for Your Design?</h2>
+<section id="characteristics-of-this-experiment" class="level3">
+<h3 class="anchored" data-anchor-id="characteristics-of-this-experiment">Characteristics of this experiment</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Value</th>
+<th>Implication</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Conditions</td>
+<td>3 (CTRL, KO, WT)</td>
+<td>3 independent pairwise contrasts</td>
+</tr>
+<tr class="even">
+<td>Replicates</td>
+<td>4 per condition</td>
+<td>Small <span class="math inline">\(n\)</span> → EB moderation critical</td>
+</tr>
+<tr class="odd">
+<td>Comparisons</td>
+<td>3 (<code>CTRL_vs_WT</code>, <code>CTRL_vs_KO</code>, <code>KO_vs_WT</code>)</td>
+<td>Independent tests per contrast</td>
+</tr>
+<tr class="even">
+<td>Proteins tested</td>
+<td>~hundreds to thousands</td>
+<td>Large multiple testing burden</td>
+</tr>
+<tr class="odd">
+<td>Expected biology</td>
+<td>KO likely has many DE proteins</td>
+<td><span class="math inline">\(\pi_0\)</span> likely &lt; 1 → q-value gain possible</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="recommendation" class="level3">
+<h3 class="anchored" data-anchor-id="recommendation">Recommendation</h3>
+<p><strong>Primary analysis:</strong> Use <strong>Storey’s q-value</strong> applied per comparison as the significance criterion for publication-level calls, with BH as the fallback for robustness checks.</p>
+<p><strong>Reasoning:</strong></p>
+<ol type="1">
+<li>With thousands of proteins and a meaningful KO, <span class="math inline">\(\pi_0\)</span> is likely 0.7–0.9, not 1.0. BH overcorrects in this range.</li>
+<li>With only 4 replicates, power is limited — recovering more true positives with q-value matters.</li>
+<li>The q-value p-value distribution assumption holds because limma p-values are well-calibrated (the EB moderation improves the degrees of freedom estimate).</li>
+</ol>
+<p><strong>When to stick with BH:</strong></p>
+<ul>
+<li>If the p-value histogram does not show a clear spike near zero (few true positives → <span class="math inline">\(\pi_0 \approx 1\)</span>, q-value gives no benefit).</li>
+<li>For the diagnostic comparison of imputation methods (<code>DE_analysis()</code> in <code>03_cleaning_data_mixed_imputation.R</code>) — BH is sufficient there because the goal is relative comparison, not absolute significance claims.</li>
+<li>When the number of tested proteins is small (&lt;200 per comparison after filtering).</li>
+</ul>
+</section>
+<section id="cross-comparison-fdr-should-you-correct-globally-or-per-comparison" class="level3">
+<h3 class="anchored" data-anchor-id="cross-comparison-fdr-should-you-correct-globally-or-per-comparison">Cross-comparison FDR: should you correct globally or per comparison?</h3>
+<p>DEP applies correction <strong>per comparison</strong> (each contrast separately). This is the standard approach in proteomics and is correct for your design, because:</p>
+<ul>
+<li>The three comparisons address different biological questions.</li>
+<li>Combining all p-values globally would make the correction overly conservative (you would penalize a CTRL_vs_KO result for tests belonging to KO_vs_WT).</li>
+</ul>
+<p>Global FDR across all comparisons is appropriate only when you are pooling tests that are exchangeable (same null hypothesis across comparisons) — not the case here.</p>
+<hr>
+</section>
+</section>
+<section id="code-inconsistency-in-this-repository" class="level2">
+<h2 class="anchored" data-anchor-id="code-inconsistency-in-this-repository">8. Code Inconsistency in This Repository</h2>
+<section id="what-was-found" class="level3">
+<h3 class="anchored" data-anchor-id="what-was-found">What was found</h3>
+<p>The <code>DE_analysis()</code> helper in <code>03_cleaning_data_mixed_imputation.R</code> calls <code>test_diff()</code> without <code>design_formula</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 03_cleaning_data_mixed_imputation.R, lines 779–784</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>DE_analysis <span class="ot">&lt;-</span> <span class="cf">function</span>(se) {</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  se <span class="sc">%&gt;%</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">test_diff</span>(., <span class="at">type =</span> <span class="st">"manual"</span>, <span class="at">test =</span> comparisons) <span class="sc">%&gt;%</span>   <span class="co"># ← no design_formula</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_rejections</span>(., <span class="at">alpha =</span> p_val, <span class="at">lfc =</span> <span class="fu">log2</span>(FC)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">get_results</span>()</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The main analysis in <code>04_data_analysis.R</code> explicitly passes it:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>dep_analysis <span class="ot">&lt;-</span> <span class="fu">analyze_dep</span>(imputation_file,</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>                            <span class="at">type    =</span> <span class="st">"manual"</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                            <span class="at">control =</span> <span class="cn">NULL</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                            <span class="at">alpha   =</span> p_val,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                            <span class="at">lfc     =</span> FC,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                            <span class="at">test    =</span> comparisons,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                            <span class="at">design_formula =</span> <span class="fu">formula</span>(<span class="sc">~</span><span class="dv">0</span> <span class="sc">+</span> condition))  <span class="co"># ← explicit</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="is-this-a-bug" class="level3">
+<h3 class="anchored" data-anchor-id="is-this-a-bug">Is this a bug?</h3>
+<p><strong>No</strong> — the behavior is identical. <code>test_diff()</code> defaults to <code>formula(~0 + condition)</code>, which matches what the main analysis passes explicitly. The results are the same.</p>
+<p>However, the omission is a <strong>readability and maintainability risk</strong>: if the default ever changes, or if someone copies <code>DE_analysis()</code> into a context with different experimental variables in <code>colData</code>, the implicit formula may produce wrong results silently.</p>
+</section>
+<section id="recommended-fix" class="level3">
+<h3 class="anchored" data-anchor-id="recommended-fix">Recommended fix</h3>
+<p>Make the formula explicit in the diagnostic function. In <code>03_cleaning_data_mixed_imputation.R</code>, line 780:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Before</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>DE_analysis <span class="ot">&lt;-</span> <span class="cf">function</span>(se) {</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  se <span class="sc">%&gt;%</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">test_diff</span>(., <span class="at">type =</span> <span class="st">"manual"</span>, <span class="at">test =</span> comparisons) <span class="sc">%&gt;%</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_rejections</span>(., <span class="at">alpha =</span> p_val, <span class="at">lfc =</span> <span class="fu">log2</span>(FC)) <span class="sc">%&gt;%</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">get_results</span>()</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="co"># After — explicit design_formula matches the main analysis</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>DE_analysis <span class="ot">&lt;-</span> <span class="cf">function</span>(se) {</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  se <span class="sc">%&gt;%</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">test_diff</span>(., <span class="at">type =</span> <span class="st">"manual"</span>, <span class="at">test =</span> comparisons,</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>              <span class="at">design_formula =</span> <span class="fu">formula</span>(<span class="sc">~</span><span class="dv">0</span> <span class="sc">+</span> condition)) <span class="sc">%&gt;%</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_rejections</span>(., <span class="at">alpha =</span> p_val, <span class="at">lfc =</span> <span class="fu">log2</span>(FC)) <span class="sc">%&gt;%</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">get_results</span>()</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Also note: <code>lfc = log2(FC)</code> in the diagnostic function passes <code>log2(0.5) ≈ −0.585</code> as the fold-change threshold, while <code>analyze_dep(..., lfc = FC)</code> passes <code>0.5</code> directly. The <code>add_rejections()</code> <code>lfc</code> argument is in log2 scale, but <code>analyze_dep()</code>’s <code>lfc</code> argument is also in log2 scale — both are consistent. However, <code>FC = 0.5</code> means ±0.5 in log2, which corresponds to a fold-change of ~1.41×, not 2×. Verify this threshold is intentional.</p>
+<hr>
+</section>
+</section>
+<section id="implementing-storeys-q-value-as-a-drop-in-extension" class="level2">
+<h2 class="anchored" data-anchor-id="implementing-storeys-q-value-as-a-drop-in-extension">9. Implementing Storey’s q-value as a Drop-in Extension</h2>
+<p>The following function can be added to <code>code/aux_functions.R</code> or called directly in the analysis pipeline. It extends the DEP results table with q-values per comparison.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Requires: qvalue (Bioconductor)</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Input:  dep_analysis object from analyze_dep() or test_diff()</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">#         comparisons character vector</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Output: data.frame identical to get_results() but with added _q.val columns</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">#         and _significant_qval logical column</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>get_results_with_qvalue <span class="ot">&lt;-</span> <span class="cf">function</span>(dep_analysis, comparisons, <span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">lfc =</span> <span class="fl">0.5</span>) {</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">requireNamespace</span>(<span class="st">"qvalue"</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"Install qvalue: BiocManager::install('qvalue')"</span>)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>  results <span class="ot">&lt;-</span> DEP<span class="sc">::</span><span class="fu">get_results</span>(dep_analysis)</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (comp <span class="cf">in</span> comparisons) {</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    pval_col  <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_p.val"</span>)</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    ratio_col <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_ratio"</span>)</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    qval_col  <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_q.val"</span>)</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    sig_col   <span class="ot">&lt;-</span> <span class="fu">paste0</span>(comp, <span class="st">"_significant_qval"</span>)</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span>pval_col <span class="sc">%in%</span> <span class="fu">names</span>(results)) {</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>      <span class="fu">warning</span>(<span class="st">"Column not found: "</span>, pval_col, <span class="st">" — skipping "</span>, comp)</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>      <span class="cf">next</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    pvals <span class="ot">&lt;-</span> results[[pval_col]]</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    valid <span class="ot">&lt;-</span> <span class="sc">!</span><span class="fu">is.na</span>(pvals)</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">sum</span>(valid) <span class="sc">&lt;</span> <span class="dv">100</span>) {</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>      <span class="fu">warning</span>(comp, <span class="st">": fewer than 100 valid p-values — q-value estimate may be unreliable"</span>)</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>    q_out <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>      qvalue<span class="sc">::</span><span class="fu">qvalue</span>(pvals[valid]),</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>      <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>        <span class="fu">warning</span>(comp, <span class="st">": qvalue() failed ("</span>, e<span class="sc">$</span>message, <span class="st">") — falling back to BH"</span>)</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>        <span class="fu">list</span>(<span class="at">qvalues =</span> <span class="fu">p.adjust</span>(pvals[valid], <span class="at">method =</span> <span class="st">"BH"</span>))</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>    results[[qval_col]] <span class="ot">&lt;-</span> <span class="cn">NA_real_</span></span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>    results[[qval_col]][valid] <span class="ot">&lt;-</span> q_out<span class="sc">$</span>qvalues</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>    results[[sig_col]] <span class="ot">&lt;-</span> <span class="sc">!</span><span class="fu">is.na</span>(results[[qval_col]]) <span class="sc">&amp;</span></span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>                          results[[qval_col]] <span class="sc">&lt;</span> alpha <span class="sc">&amp;</span></span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>                          <span class="fu">abs</span>(results[[ratio_col]]) <span class="sc">&gt;</span> lfc</span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(results)</span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="usage-in-04_data_analysis.r" class="level3">
+<h3 class="anchored" data-anchor-id="usage-in-04_data_analysis.r">Usage in <code>04_data_analysis.R</code></h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># After running data_analysis(), supplement with q-values:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>results_qval <span class="ot">&lt;-</span> <span class="fu">get_results_with_qvalue</span>(</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">dep_analysis =</span> dep_analysis,</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">comparisons  =</span> comparisons,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">alpha        =</span> p_val,   <span class="co"># 0.05</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">lfc          =</span> FC       <span class="co"># 0.5 (log2 scale)</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect π₀ estimates</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(qvalue)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (comp <span class="cf">in</span> comparisons) {</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>  pvals <span class="ot">&lt;-</span> results_qval[[<span class="fu">paste0</span>(comp, <span class="st">"_p.val"</span>)]]</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>  q_out <span class="ot">&lt;-</span> <span class="fu">qvalue</span>(pvals[<span class="sc">!</span><span class="fu">is.na</span>(pvals)])</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(comp, <span class="st">"→ π₀ estimate:"</span>, <span class="fu">round</span>(q_out<span class="sc">$</span>pi0, <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare BH vs q-value significant counts</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (comp <span class="cf">in</span> comparisons) {</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>  n_bh  <span class="ot">&lt;-</span> <span class="fu">sum</span>(results_qval[[<span class="fu">paste0</span>(comp, <span class="st">"_significant"</span>)]], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>  n_qv  <span class="ot">&lt;-</span> <span class="fu">sum</span>(results_qval[[<span class="fu">paste0</span>(comp, <span class="st">"_significant_qval"</span>)]], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(comp, <span class="st">"→ BH:"</span>, n_bh, <span class="st">" | q-value:"</span>, n_qv, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<hr>
+</section>
+</section>
+<section id="decision-checklist" class="level2">
+<h2 class="anchored" data-anchor-id="decision-checklist">10. Decision Checklist</h2>
+<ul>
+<li><p>[ ] Before running the differential analysis, verify each item:</p></li>
+<li><p><label><input type="checkbox"><strong>Formula matches type:</strong> <code>~0 + condition</code> with <code>type = "manual"</code> OR <code>~condition</code> with <code>type = "control"</code>.</label></p></li>
+<li><p><label><input type="checkbox"><strong>Contrast strings match condition labels exactly:</strong> Check <code>unique(colData(se)$condition)</code> and compare with your <code>comparisons</code> vector.</label></p></li>
+<li><p><label><input type="checkbox"><strong><code>design_formula</code> is explicit</strong> in all calls to <code>test_diff()</code> (not relying on the default).</label></p></li>
+<li><p><label><input type="checkbox"><strong>Batch effects:</strong> If <code>colData(se)</code> has a batch variable, include it in the formula: <code>~0 + condition + batch</code>.</label></p></li>
+<li><p><label><input type="checkbox"><strong>FDR method matches your claim:</strong> Use BH for conservative exploratory analysis; use Storey’s q-value when power is critical and <span class="math inline">\(\pi_0 &lt; 1\)</span> is expected.</label></p></li>
+<li><p><label><input type="checkbox"><strong>FDR applied per comparison:</strong> Do not pool p-values across comparisons before correction.</label></p></li>
+<li><p><label><input type="checkbox"><strong>Inspect p-value histogram</strong> per comparison to verify the null distribution is uniform at high p-values (validates EB calibration and FDR assumptions).</label></p></li>
+<li><p><label><input type="checkbox"><strong>FC threshold units:</strong> <code>add_rejections(lfc = ...)</code> expects log2 scale; <code>analyze_dep(lfc = ...)</code> also expects log2 scale. Do not exponentiate.</label></p></li>
+<li><p><label><input type="checkbox"><strong><code>significant</code> vs <code>significance</code>:</strong> In this codebase, <code>significant</code> (from <code>add_rejections</code>) requires <em>all</em> comparisons to be consistent (DEP’s global flag); <code>significance</code> (added in <code>04_data_analysis.R</code>) is TRUE if <em>any</em> comparison passes the nominal threshold. Use the appropriate one for your question.</label></p></li>
+</ul>
+<hr>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<ul>
+<li>Smyth GK (2004). <em>Linear models and empirical Bayes methods for assessing differential expression in microarray experiments.</em> Statistical Applications in Genetics and Molecular Biology.</li>
+<li>Benjamini Y, Hochberg Y (1995). <em>Controlling the false discovery rate: a practical and powerful approach to multiple testing.</em> JRSS-B.</li>
+<li>Storey JD, Tibshirani R (2003). <em>Statistical significance for genome-wide studies.</em> PNAS.</li>
+<li>Zhang X et al.&nbsp;(2018). <em>Proteome-wide identification of ubiquitin interactions using UbIA-MS.</em> Nature Protocols. (DEP paper)</li>
+<li><a href="https://bioconductor.org/packages/DEP/">DEP Bioconductor vignette</a></li>
+<li><a href="https://bioconductor.org/packages/limma/">limma User’s Guide</a></li>
+</ul>
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>[^2]<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

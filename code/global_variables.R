@@ -14,6 +14,11 @@ pdf_extension <- ".pdf" # Vectorial format
 keyType <- "UNIPROT"
 KEGGkeyType <- "uniprot"
 
+# Color by condition
+# Generate 4 colors from the Set2 palette
+# Set number of color on basis of number of conditions
+my_colors <- setNames(RColorBrewer::brewer.pal(4, "Set2"), c("CTRL", "CTRL_K", "MDD", "MDD_K"))
+
 # Creat directories to store data
 create_directories <- function(base_path) {
   # Helper function to create a directory if it does not exist
@@ -28,20 +33,20 @@ create_directories <- function(base_path) {
 
   # Create the base directory and its subdirectories
   create_dir_if_not_exists(base_path)
-  create_dir_if_not_exists(paste0(base_path, "tables"))
-  create_dir_if_not_exists(paste0(base_path, "figures"))
-  create_dir_if_not_exists(paste0(base_path, "RData"))
-  create_dir_if_not_exists(paste0(base_path, "figures/VennDiagram"))
-  create_dir_if_not_exists(paste0(base_path, "figures/summary"))
-  create_dir_if_not_exists(paste0(base_path, "figures/enrichGO"))
-  create_dir_if_not_exists(paste0(base_path, "figures/gseGO"))
-  create_dir_if_not_exists(paste0(base_path, "figures/KEGG_GO"))
-  create_dir_if_not_exists(paste0(base_path, "figures/GO_adj"))
-  create_dir_if_not_exists(paste0(base_path, "figures/GO_adj"))
-  create_dir_if_not_exists(paste0(base_path, "figures/gseGO_adj"))
-  create_dir_if_not_exists(paste0(base_path, "figures/gseKEGG_adj"))
-  create_dir_if_not_exists(paste0(base_path, "figures/panther"))
-  create_dir_if_not_exists(paste0(base_path, "figures/rbioapi"))
+  create_dir_if_not_exists(file.path(base_path, "tables"))
+  create_dir_if_not_exists(file.path(base_path, "figures"))
+  create_dir_if_not_exists(file.path(base_path, "RData"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "VennDiagram"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "summary"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "enrichGO"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "gseGO"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "KEGG_GO"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "GO_adj"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "GO_adj"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "gseGO_adj"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "gseKEGG_adj"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "panther"))
+  create_dir_if_not_exists(file.path(base_path, "figures", "rbioapi"))
 }
 create_directories(output_path)
 

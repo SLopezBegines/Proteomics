@@ -40,13 +40,13 @@ gc()
 #   kegg_organism: KEGG species code (dre = Danio rerio, hsa = Homo sapiens, mmu = Mus musculus)
 #   species:       NCBI taxonomy ID 9606 for Human, 10090 for mouse, 7955 for zebrafish
 #   organism:      Bioconductor OrgDb annotation package "org.Mm.eg.db", "org.Dr.eg.db",  "org.Hs.eg.db"
-kegg_organism <- "hsa"
-species <- 9606
-organism <- "org.Hs.eg.db"
+kegg_organism <- "mmu"
+species <- 10090
+organism <- "org.Mm.eg.db"
 
 
 # --- Output Configuration ---
-output_path <- "output/blood_cells_human_mouse/"
+output_path <- "output/blood_cells_human_mouse"
 image_number <- 1  # Sequential counter for figure numbering
 
 # Load global thresholds (p_val, FC) and helper functions (create_directories)
@@ -65,41 +65,46 @@ source("../code/00_packages.R")
 
 ## Reading Raw Data
 
-Load the MaxQuant ProteinGroups output and apply initial preprocessing: zero values are replaced with NA (MaxQuant encodes missing LFQ intensities as 0), column names are standardized across different MaxQuant versions, and known contaminant proteins are identified and removed.
-
+Load peptides table. 
 
 
 ```{r}
-  peptides_data <- read_tsv("../rawdata/report_170626_PRE2026_006_SAX_15cm_AlejandraPlasma.pr_matrix.tsv")
+peptides_data <- read_tsv("../rawdata/report_170626_PRE2026_006_SAX_15cm_AlejandraPlasma.pr_matrix.tsv")
+# Clean column names (remove path prefix)
+prefix <- "\\\\pcproteo02\\Data\\Raw Data\\2026\\06_Junio_26\\170626_PRE2026_006_SAX_15cm_AlejandraPlasma\\"
+colnames(peptides_data) <- sub(prefix, "", colnames(peptides_data), fixed = TRUE)
 
-  # 1. Limpiar nombres de columnas (quitar el prefijo de ruta)
-  prefix <- "\\\\pcproteo02\\Data\\Raw Data\\2026\\06_Junio_26\\170626_PRE2026_006_SAX_15cm_AlejandraPlasma\\"
-  colnames(peptides_data) <- sub(prefix, "", colnames(peptides_data), fixed = TRUE)
-
-  # 2. Identificar columnas de muestra (todo lo que no es metadato)
-  meta_cols <- c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes",
+# Identify sample columns (!metadata)
+meta_cols <- c("Protein.Group", "Protein.Ids", "Protein.Names", "Genes",
                  "First.Protein.Description", "Proteotypic",
                  "Stripped.Sequence", "Modified.Sequence",
                  "Precursor.Charge", "Precursor.Id")
-  sample_cols <- setdiff(colnames(peptides_data), meta_cols)
+sample_cols <- setdiff(colnames(peptides_data), meta_cols)
 
-  # 3. Por cada Protein.Group + muestra, contar Stripped.Sequence únicos detectados (no-NA)
-  pep_counts <- peptides_data %>%
+# For every Protein.Group + sample, count unique peptides Stripped.Sequence detected (no-NA)
+pep_counts <- peptides_data %>%
     select(Protein.Group, Stripped.Sequence, all_of(sample_cols)) %>%
     pivot_longer(cols = all_of(sample_cols), names_to = "sample", values_to = "intensity") %>%
     filter(!is.na(intensity)) %>%
     group_by(Protein.Group, sample) %>%
     summarise(n_peptides = n_distinct(Stripped.Sequence), .groups = "drop")
 
-  # 4. Quedarse con Protein.Groups que en al menos 1 muestra tienen >= 2 péptidos
-  proteins_2pep <- pep_counts %>%
+# Remain only with Protein.Groups with at least one sample with >= 2 peptides
+proteins_2pep <- pep_counts %>%
     group_by(Protein.Group) %>%
     filter(any(n_peptides >= 2)) %>%
     pull(Protein.Group) %>%
     unique()
 
-  length(proteins_2pep)  # cuántos pasan el filtro
+length(proteins_2pep)  # Passing filter
+  
+cat("====== Summary of Peptide Counts ===\n")
+cat("Total number of proteins in the dataset: ", length(unique(peptides_data$Protein.Group)), "\n")
+cat("Number of proteins with >= 2 peptides in at least one sample: ", length(proteins_2pep), "\n")
 ```
+
+
+Load the MaxQuant ProteinGroups output and apply initial preprocessing: zero values are replaced with NA (MaxQuant encodes missing LFQ intensities as 0), column names are standardized across different MaxQuant versions, and known contaminant proteins are identified and removed.
 
 ```{r load-data}
 prot_data <- read_tsv("../rawdata/report_170626_PRE2026_006_SAX_15cm_AlejandraPlasma.pg_matrix.tsv")
@@ -131,23 +136,34 @@ The design specifies:
 ```{r experiment-design}
 # --- Pairwise Comparisons ---
 # Each string defines a limma contrast: "GroupA_vs_GroupB"
-comparisons <- c("CTRL_vs_CTRL_K", "MDD_vs_MDDK", "CTRL_vs_MDD", "CTRL_K_vs_MDDK", "CTRL_vs_MDDK")
+comparisons <- c("CTRL_vs_CTRL_K", "MDD_vs_MDD_K", "CTRL_vs_MDD", "CTRL_K_vs_MDD_K", "CTRL_vs_MDD_K")
 
 # --- Sample Mapping ---
 # label: exact column names in the MaxQuant output (used to extract LFQ intensities)
 label <- c(
+  #Control
 "1_C_1_15cm_Slot2-1_1_5584.d",
 "2_C_2_15cm_Slot2-2_1_5557.d",    
 "3_C_3_15cm_Slot2-3_1_5575.d",    
 "4_C_4_15cm_Slot2-4_1_5571.d",    
 "5_C_5_15cm_Slot2-5_1_5553.d",    
+# Control + K
 "6_CK_1_15cm_Slot2-6_1_5580.d",   
 "7_CK_2_15cm_Slot2-7_1_5554.d",   
 "8_CK_3_15cm_Slot2-8_1_5569.d",   
 "9_CK_4_15cm_Slot2-9_1_5581.d",   
 "10_CK_5_15cm_Slot2-10_1_5551.d", 
+# MDD
 "11_MDD_1_15cm_Slot2-11_1_5579.d",
-"12_MDD_2_15cm_Slot2-12_1_5558.d", "13_MDD_3_15cm_Slot2-13_1_5566.d", "14_MDD_4_15cm_Slot2-14_1_5572.d", "15_MDD_5_15cm_Slot2-15_1_5560.d", "16_MDD_6_15cm_Slot2-16_1_5559.d", "17_MDD_7_15cm_Slot2-17_1_5582.d", "18_MDD_8_15cm_Slot2-18_1_5583.d", "19_MDDK_1_15cm_Slot2-19_1_5565.d",
+"12_MDD_2_15cm_Slot2-12_1_5558.d", 
+"13_MDD_3_15cm_Slot2-13_1_5566.d", 
+"14_MDD_4_15cm_Slot2-14_1_5572.d", 
+"15_MDD_5_15cm_Slot2-15_1_5560.d", 
+"16_MDD_6_15cm_Slot2-16_1_5559.d", 
+"17_MDD_7_15cm_Slot2-17_1_5582.d", 
+"18_MDD_8_15cm_Slot2-18_1_5583.d", 
+# MDD+K
+"19_MDDK_1_15cm_Slot2-19_1_5565.d",
 "20_MDDK_2_15cm_Slot2-20_1_5552.d",
 "21_MDDK_3_15cm_Slot2-21_1_5555.d",
 "22_MDDK_4_15cm_Slot2-22_1_5568.d",
@@ -163,7 +179,7 @@ columns_to_rename <- c(
   "CTRL_1", "CTRL_2", "CTRL_3", "CTRL_4","CTRL_5",
   "CTRL_K_1", "CTRL_K_2", "CTRL_K_3", "CTRL_K_4","CTRL_K_5",
   "MDD_1",  "MDD_2","MDD_3","MDD_4","MDD_5","MDD_6","MDD_7","MDD_8",
-  "MDDK_1",  "MDDK_2","MDDK_3","MDDK_4","MDDK_5","MDDK_6","MDDK_7","MDDK_8"
+  "MDD_K_1",  "MDD_K_2","MDD_K_3","MDD_K_4","MDD_K_5","MDD_K_6","MDD_K_7","MDD_K_8"
 )
 
 # condition: grouping factor (must match the prefixes used in comparisons)
@@ -171,7 +187,7 @@ condition <- as.factor(c(
   "CTRL", "CTRL", "CTRL", "CTRL","CTRL",
   "CTRL_K", "CTRL_K","CTRL_K","CTRL_K","CTRL_K",
   "MDD", "MDD","MDD","MDD","MDD","MDD","MDD","MDD",
-  "MDDK", "MDDK","MDDK","MDDK","MDDK","MDDK","MDDK","MDDK"
+  "MDD_K", "MDD_K","MDD_K","MDD_K","MDD_K","MDD_K","MDD_K","MDD_K"
 ))
 
 replicate <- c(
@@ -181,42 +197,430 @@ replicate <- c(
   "1",  "2","3","4","5","6","7","8"
 )
 
+batch <- rep(1,length(replicate))
+
 # --- Build and Export Design Matrix ---
-Exp_design <- cbind.data.frame(label, condition, replicate, columns_to_rename)
+Exp_design <- cbind.data.frame(label, condition, replicate, batch, columns_to_rename)
 print(Exp_design)
 
 Exp_design %>%
-  writexl::write_xlsx(paste0(output_path, "tables/experiment_design.xlsx"))
+  writexl::write_xlsx(file.path(output_path, "tables","experiment_design.xlsx"))
 ```
 
-# Data Cleaning
+## Generate SummarizedExperiment Object
+
+```{r}
+source("../code/qc_proteomics.R")
+
+data_se <- create_se(prot_data, Exp_design)
+
+# Save Checkpoint 
+data_se |> base::saveRDS(file.path(output_path, "RData", "data_SE.RDS"))
+
+rm(prot_data, peptides_data, pep_counts, proteins_2pep, prefix, sample_cols, meta_cols, label, columns_to_rename, condition, replicate, batch)
+```
+
+
+# QC
 
 Filter, normalize, and impute missing values. This step is critical in LFQ proteomics because missing values arise from two distinct mechanisms:
 
 - **MNAR** (Missing Not At Random): proteins below the instrument detection limit. These are imputed with low-intensity values (`zero`, `MinProb`, or `QRILC`).
 - **MAR** (Missing At Random): stochastic sampling failures. These are imputed using kNN from observed values.
 
-Key parameters:
 
-- `fraction_NA = 0.6`: proteins with >60% missing values within any condition are excluded
-- `factor_SD_impute = 0.05`: width of the distribution used for MNAR imputation (proportion of the sample SD)
-- `mnar_var = "zero"`: MNAR imputation method (alternatives: `"MinProb"`, `"QRILC"`)
+## Protein overlap
 
-The function also applies VSN (Variance Stabilizing Normalization) and generates QC plots (protein overlap, coverage, missing value patterns, normalization diagnostics).
+```{r}
+plot_overlap <- plot_id_overlap(data_se)
+print(plot_overlap)
+save_plot("protein_overlap", plot_overlap, width = 8, height = 6, subdir = "QC")
+rm(plot_overlap)
+```
 
-```{r data-cleaning}
-source("../code/03_cleaning_data_mixed_imputation.R")
-image_number <- 1  # Reset figure numbering for the cleaning step
-data_cleaning(
-  prot_data,
-  Exp_design,
-  comparisons,
-  output_path,
-  fraction_NA     = 0.6,
-  factor_SD_scale = 0.3,
-  factor_SD_impute = 0.05,
-  mnar_var         = "zero"
+## Filtering Proteins with Excessive Missing Values
+
+Fraction-based variant of filter_missing(). A protein is retained if at least one condition has a proportion of valid (non-NA) replicates >= min_valid_fraction. This threshold scales automatically with replicate count.
+```{r}
+data_filt <- filter_missing_frac(data_se, min_valid_fraction = 0.75)
+# Save filtered NA dataset
+base::saveRDS(data_filt, file.path(output_path, "RData", "data_filtered.RDS"))
+
+# Number of proteins before filtering
+cat("=== Number of protein pre-filtering = ", length(unique(rowData(data_se)$ID)),"\n")  
+# Number of proteins before filtering    
+
+cat("=== Number of protein post-filtering = ", length(unique(rowData(data_filt)$ID)),"\n")  
+
+upset <- plot_upset_custom(data_se)
+upset$table |> 
+write_xlsx(file.path(output_path, "tables", "intersection_proreins.xlsx"))
+upset$table |> 
+  dplyr::arrange(Num_Proteins) |> 
+  dplyr::slice_head(n=14)
+
+p1 <- upset$plot
+p2 <- plot_upset_custom(data_filt)
+
+# Combined upset plot after filtering
+# 
+# Convert to grobs
+grob1 <- grid.grabExpr(draw(p1))
+grob2 <- grid.grabExpr(draw(p2$plot))
+
+# Combine using patchwork
+p <- wrap_plots(grob1, grob2, ncol = 2)+plot_annotation(
+  title = "Common genes between conditions",
+  subtitle = "Prefilter vs Filtered",
+  tag_levels = "A",
+  theme = waiver()
 )
+print(p)
+
+save_plot("upset_plot", p, width = 8, height = 6, subdir = "QC")
+
+rm(upset, p1, p2, grob1, grob2, p)
+```
+
+## Identificated proteins and coverage
+
+```{r}
+plot_sample_numbers <- plot_sample_numbers(data_filt)
+print(plot_sample_numbers)
+
+plot_protein_coverage <- plot_protein_coverage(data_filt)
+print(plot_protein_coverage)
+
+rm(plot_sample_numbers, plot_protein_coverage)
+```
+
+## Missing values distribution
+
+```{r}
+missing_heatmap_se <- plot_missing_heatmap(data_se)
+missing_heatmap_filt <- plot_missing_heatmap(data_filt)
+# Capture heatmap as grob from system grid
+g_se   <- grid::grid.grabExpr(draw(missing_heatmap_se))
+g_filt <- grid::grid.grabExpr(draw(missing_heatmap_filt))
+
+# Mix with any ggplot
+p_na <- (wrap_elements(g_se) | wrap_elements(g_filt)) + plot_annotation(
+  title = "Missing values distribution",
+  subtitle = "Prefilter vs Filtered",
+  tag_levels = "A",
+  theme = waiver()
+)
+save_plot("missing_values_heatmap", p_na, width = 12, height = 6, subdir = "QC")
+print(p_na)
+
+rm(missing_heatmap_se, missing_heatmap_filt, g_se, g_filt, p_na)
+```
+
+# Normalization PRONE
+
+`PRONE::get_normalization_methods()` returns 19 identifiers. Each normalizes the assay indicated ("raw" = linear-scale intensities, "log2" = log2-transformed) as follows:
+
+- **GlobalMean** / **GlobalMedian**: total-intensity (sample-sum) normalization; each sample is rescaled by the mean/median of the summed intensities across all samples. Input: raw.
+- **Median** / **Mean**: each protein's intensity is divided by its sample's median/mean intensity, then rescaled by the mean of those medians/means across samples. Input: raw.
+- **Quantile**: forces all samples to share the same intensity distribution by replacing each value with the mean of its rank-matched quantile (`preprocessCore::normalize.quantiles`). Input: log2.
+- **VSN**: Variance Stabilizing Normalization (`limma::normalizeVSN`); fits a per-sample affine + generalized-log transform so variance no longer depends on intensity level. Input: raw.
+- **LoessF**: single-pass ("fast") Loess normalization against the across-sample mean intensity as reference. Input: log2.
+- **LoessCyc**: cyclic Loess (`limma::normalizeCyclicLoess`); MA-transforms and Loess-smooths every pair of samples, iterating over all pairs. Input: log2.
+- **RLR**: Robust Linear Regression (NormalyzerDE); regresses each sample against the across-sample median and subtracts the fitted robust-linear trend. Input: log2.
+- **RlrMA**: like RLR, but performed on MA-transformed data (A = median sample, M = difference from A) before the robust regression. Input: log2.
+- **RlrMACyc**: cyclic variant of RlrMA — MA-transform + robust regression repeated pairwise across all sample pairs over several iterations, no fixed reference. Input: log2.
+- **EigenMS**: fits an ANOVA model using the known experimental design (condition/replicate) to estimate biological effects, then applies SVD to the residuals to remove systematic non-biological trends. Input: log2.
+- **MAD**: subtracts each sample's median and divides by its Median Absolute Deviation, centering and scaling all samples to a common spread. Input: log2.
+- **RobNorm**: robust-regression normalization using a weighted, protein-specific density to down-weight outlier proteins when estimating per-sample scaling factors (tunable via `gamma.0`; useful for small n). Input: log2.
+- **TMM**: Trimmed Mean of M-values (`edgeR::calcNormFactors`); trims extreme log-ratios/highly-abundant proteins before averaging to estimate a per-sample scaling factor (originally developed for RNA-seq). Input: raw.
+- **limBE**: `limma::removeBatchEffect`; fits and subtracts a linear batch term. **Requires `metadata(se)$batch` to hold the name of a `colData` column with ≥2 batch levels.** Not applicable here — see note below.
+- **IRS** (not selected below): Internal Reference Scaling; uses common bridge/reference channels replicated across TMT batches to rescale all batches onto one intensity scale. Requires both `metadata(se)$batch` and `metadata(se)$refs`; only applies to multi-batch TMT designs.
+- **NormicsVSN** / **NormicsMedian**: rank proteins by a combination of mean pairwise correlation, coefficient of variation and correlation-variance to select the `top_x` most "housekeeping-like" (stable) proteins, then run VSN / median normalization using only that reference subset. Input: raw.
+
+**Method selection for this dataset.** `limBE` and `IRS` are excluded from `methods`: `Exp_design$batch` is constant (`= 1` for all 26 samples, see the Experiment Design section), so there is no batch effect to remove, and IRS additionally requires TMT reference channels that this label-free (LFQ/DIA) dataset does not have. `PRONE::normalize_se()` would otherwise abort with `"No batch specified!"` because `metadata(se)$batch` (a column name, not a batch vector) was never set.
+
+```{r}
+PRONE::get_normalization_methods()
+
+methods <- c("GlobalMean", "GlobalMedian", "Median",  "Mean", "Quantile",
+             "VSN", "LoessF", "LoessCyc",  "RLR", "RlrMA",  "RlrMACyc",
+             "EigenMS", "MAD",  "RobNorm",  "TMM",
+             "NormicsVSN", "NormicsMedian")
+
+# PRONE requires assays named "raw" and "log2" (see PRONE::load_data());
+# data_filt only carries "intensity" (linear scale), so both are added here.
+# rownames are stripped: PRONE's own normalization outputs are data.tables
+# (which never carry rownames), and some of its internal helpers
+# (e.g. get_complete_pca_dt()'s zero-variance filter) use
+# identical(rm, integer(0)) to decide whether to drop rows. If our assay
+# still has rownames, `which(...)` returns a *named* integer(0), which is
+# no longer identical() to integer(0) — the guard misfires and the assay
+# gets filtered down to 0 rows, breaking plot_PCA() with "a dimension is
+# zero" for that specific assay only.
+raw_mat  <- SummarizedExperiment::assay(data_filt, "intensity")
+log2_mat <- log2(raw_mat)
+rownames(raw_mat)  <- NULL
+rownames(log2_mat) <- NULL
+
+se_prone <- data_filt
+SummarizedExperiment::assays(se_prone, withDimnames = FALSE) <- S4Vectors::SimpleList(
+  raw  = raw_mat,
+  log2 = log2_mat
+)
+
+# EigenMS and NormicsVSN/NormicsMedian read the protein identifier from a
+# rowData column literally named "Protein.IDs" (not "ID"), and EigenMS reads
+# the grouping factor from the colData column name stored in metadata$condition.
+SummarizedExperiment::rowData(se_prone)$Protein.IDs <- SummarizedExperiment::rowData(data_filt)$ID
+S4Vectors::metadata(se_prone)$condition <- "condition"
+
+# The plotting functions (get_complete_dt(), used by plot_boxplots/plot_densities/...)
+# melt each assay and merge it back against colData by a column literally named
+# "Column" holding the sample names used as assay column names.
+SummarizedExperiment::colData(se_prone)$Column <- colnames(se_prone)
+
+se_norm <- PRONE::normalize_se(se_prone, methods = methods)
+
+# Save RDS
+se_norm |> base::saveRDS(file.path(output_path, "RData", "normalized_data.RDS"))
+
+
+
+rm(data_se, data_filt, raw_mat, log2_mat, se_prone)
+```
+
+## QC Normalization
+### Boxplots
+
+```{r}
+# Box plots
+boxplots_normalization <- plot_boxplots(se_norm, ncol = 3, facet_norm = TRUE, label_by = "label", color_by = "condition") + 
+  ggplot2::scale_fill_manual(values = my_colors) +
+  ggplot2::theme(legend.position = "bottom", legend.direction = "horizontal")
+print(boxplots_normalization)
+save_plot("boxplots_normalization", boxplots_normalization, subdir = "QC", height = 27)
+rm(boxplots_normalization)
+```
+
+### Density Plots
+
+```{r}
+# Density plots
+density_plots <- plot_densities(se_norm, facet_norm = TRUE,  color_by = "condition") + 
+  ggplot2::scale_color_manual(values = my_colors) +
+  ggplot2::theme(legend.position = "bottom", legend.direction = "horizontal")
+print(density_plots)
+save_plot("density_plots", density_plots, subdir = "QC", height = 27)
+rm(density_plots)
+```
+
+### PCA Plots
+
+```{r}
+# PCA plots
+for (a in setdiff(names(SummarizedExperiment::assays(se_norm)), "raw")){
+  cat("== ", a, " ==\n")
+  dt <- SummarizedExperiment::assays(se_norm)[[a]]
+  dt <- dt[!apply(is.na(dt),1, any),]
+  cat(" after NA filter:", paste(dim(dt), collapse = " x"), "\n")
+  
+  rm <- which(apply(t(dt), 2, stats::var) ==0)
+  cat(" n zero-variance proteins: ", length(rm), "\n")
+  if (!identical(rm, integer(0))) dt <- dt[-rm,]
+  cat(" after var filter:", paste(dim(dt), collapse=" x "), "\n")
+  
+  ok <- tryCatch({ stats::prcomp(t(dt), scale=TRUE); TRUE },
+                 error = function(e){cat(" prcomp ERROR:", conditionMessage(e), "\n"); FALSE})
+   cat(" prcomp ok:", ok, "\n") 
+  }
+
+  
+  
+  
+
+ok_assays <- setdiff(names(SummarizedExperiment::assays(se_norm)), c("raw", "log2","EigenMS"))
+
+pca_plots <- plot_PCA(se_norm, ok_assays, 
+                      color_by = "condition",
+                      facet_norm = FALSE, 
+                      ellipse = TRUE) 
+
+pca_plots <- purrr::imap(pca_plots, function(p, method){
+  p + 
+    ggplot2::scale_color_manual(values = my_colors) +
+    ggplot2::ggtitle((paste0("PCA - ", method)))
+})
+
+print(pca_plots)
+purrr::iwalk(pca_plots, function(p, method){
+  save_plot(paste0("pca_normalization_", method), pca_plots[[method]], subdir = "QC")
+})
+
+rm(pca_plots, ok_assays, dt)
+```
+
+
+
+## Intragroup Variation
+In PRONE, you can evaluate the intragroup variation of the normalized data by using the functions plot_intragroup_correlation(), plot_intragroup_PCV(), plot_intragroup_PMAD(), and plot_intragroup_PEV().
+
+### Intragroup similarity measured by Pearson correlation
+
+```{r}
+pearson_plot <- plot_intragroup_correlation(se_norm, ain = NULL, "condition",
+                            method = "pearson")
+print(pearson_plot)
+save_plot("Intragroup_Pearson", pearson_plot)
+
+```
+
+### Intragroup variation by calculation of the pooled coefficient of variation (PCV)
+
+```{r}
+PCV_plot <- plot_intragroup_PCV(se_norm, ain = NULL, condition = "condition", diff = FALSE)
+print(PCV_plot)
+save_plot("Intragroup_PCV", PCV_plot)
+
+```
+
+
+### Intragroup variation by calculation of the pooled estimate of variance (PEV)
+
+```{r}
+PEV_plot <- plot_intragroup_PEV(se_norm, ain = NULL, condition = "condition", diff = FALSE)
+print(PEV_plot)
+save_plot("Intragroup_PEV", PEV_plot)
+
+```
+
+
+### Intragroup variation by calculation of the pooled median absolute deviation (PMAD)
+
+```{r}
+PMAD_plot <- plot_intragroup_PMAD(se_norm, ain = NULL, condition = "condition", diff = FALSE)
+print(PMAD_plot)
+save_plot("Intragroup_PMAD", PMAD_plot)
+
+```
+
+### Composite Intragroup Variation Plot
+
+```{r}
+composite_plot <- (pearson_plot + PCV_plot) / (PEV_plot + PMAD_plot) + plot_annotation(
+  title = "Intragroup Variation",
+  tag_levels = "A",
+  theme = waiver()
+)
+
+print(composite_plot)
+save_plot("Intragroup_variation", composite_plot, subdir = "QC", width = 12, height = 10)
+
+rm(pearson_plot, PCV_plot, PEV_plot, PMAD_plot, composite_plot)
+```
+
+## Select Normalization method
+
+```{r}
+# load RDS
+se_norm <- readRDS(file.path(output_path, "RData", "normalized_data.RDS"))
+
+
+data_select <- select_normalization(se_norm, method = "MAD")
+```
+
+# Imputation of missing values
+
+## Classification of MAR/MNAR
+
+
+```{r}
+source("../code/imputation_single_methods.R")
+
+mar_mnar_classification <- classify_mnar_mar(se = data_select,
+                                             fraction_NA = 0.6)
+
+mnar_distribution <- plot_mnar_distribution(mar_mnar_classification)
+save_plot("mnar_distribution", mnar_distribution, subdir = "QC", width = 12, height = 8, print = TRUE)
+
+mar_mnar_classification |> 
+  writexl::write_xlsx(file.path(output_path, "tables", "MAR_MNAR_classification.xlsx"))
+
+rm(mar_mnar_classification)
+```
+
+## Imputation
+
+```{r}
+source("../code/imputation_single_methods.R")
+
+ data_minprob       <- impute_minprob(data_select, q = 0.01)
+ data_imp_man_gauss <- impute_man(data_select, shift = 1.8, scale = 0.3)
+ data_imp_knn       <- impute_knn_msn(data_select, rowmax = 0.9)
+ data_imp_QRILC     <- impute_qrilc(data_select)
+ data_mixed         <- impute_mixed_split(data_select,
+                                         fraction_NA = 0.6,
+                                         factor_SD_impute = 0.05,
+                                         factor_SD_scale = 0.3,
+                                         k = 10,
+                                         rowmax = 0.9,
+                                         colmax = 0.8,
+                                         maxp = 1500,
+                                         seed = 1234)
+ imputed_list <- list(
+   MinProb = data_minprob, man = data_imp_man_gauss,
+   knn = data_imp_knn, QRILC = data_imp_QRILC, Mixed = data_mixed
+ )
+
+rm(data_minprob, data_imp_man_gauss, data_imp_knn, data_imp_QRILC, data_mixed)
+```
+
+
+## QC Imputation
+
+```{r}
+imputaton_distribution <- plot_imputation_distributions(data_select, imputed_list)   # from qc_proteomics.R
+save_plot("imputation_distribution", imputaton_distribution, subdir = "QC", width = 12, height = 8, print = TRUE)
+
+ imputation_sd <- plot_sd_before_after(data_select, imputed_list)            # from qc_proteomics.R
+ print(imputation_sd$plot)
+ save_plot("imputation_sd", imputation_sd$plot, subdir = "QC", width = 12, height = 8, print = TRUE)
+ 
+ labels <- paste0(LETTERS[seq_along(imputed_list)], ". ", names(imputed_list))
+ pca_hubert <- Map(function(se, lbl) run_pca_hubert(se, title = lbl, subtitle = NULL),
+                    imputed_list, labels)                                    # from qc_proteomics.R
+ plot_hubert <- patchwork::wrap_plots(lapply(pca_hubert, `[[`, "plot"), ncol = 3) +
+   plot_layout(guides = "collect") +
+   plot_annotation(title = "PCA-Hubert Imputation Comparison",
+                   subtitle = "Robust PCA outlier detection",
+                   theme = theme(plot.title = element_text(size = 16, face = "bold")),
+                   caption = "Samples in red deviate from the main cluster") &
+   ggplot2::theme(legend.position = "bottom", legend.direction = "horizontal")
+
+ print(plot_hubert)
+ save_plot("pca_hubert", plot_hubert, subdir = "QC", width = 12, height = 8, print = TRUE)
+# Plos indivial PCA Hubert 
+ for(nm in names(imputed_list)){
+  cat("=== PCA-Hubert for imputation method:", nm, "===\n")
+  pca_hubert[[nm]]$plot |> print()
+  save_plot(paste0("pca_hubert_", nm), pca_hubert[[nm]]$plot, subdir = "QC", width = 12, height = 8, print = TRUE)
+}
+rm(plot_hubert, pca_hubert, imputaton_distribution, imputation_sd)
+```
+
+
+```{r}
+pca_list <- imputed_list
+pca_list$No_imputation <- data_select
+pca_comparison <- plot_pca_comparison(pca_list)
+save_plot("pca_comparison", pca_comparison, subdir = "QC", width = 12, height = 8, print = TRUE)
+
+#Plot individual PCA plots
+for (nm in names(pca_list)){
+  cat("=== PCA for imputation method:", nm, "===\n")
+  pca_list[[nm]] |> plot_pca(title = nm) |> print()
+  save_plot(paste0("pca_", nm), pca_list[[nm]] |> plot_pca(title = nm), subdir = "QC", width = 12, height = 8, print = FALSE)
+}
+rm(pca_list, pca_comparison)
 ```
 
 # Differential Expression Analysis
@@ -238,8 +642,9 @@ The input is the imputed `SummarizedExperiment` object from the cleaning step. O
 
 
 ```{r differential-expression}
-source("../code/04_data_analysis.R")
-data_analysis(data_imp_knn, Exp_design, comparisons, output_path, adjusted_method = "BH")
+source("../code/de_analysis.R")
+data_imp_knn <- imputed_list$knn
+run_de_analysis(data_imp_knn, comparisons, output_path, adjusted_method = "BH")
 ```
 
 # Visualization
@@ -252,11 +657,82 @@ Generate publication-ready plots from the differential expression results:
 - **Barplots**: optional per-protein intensity barplots (disabled by default for performance)
 
 All figures are exported in dual format (TIFF for publication, PDF for vector editing) with sequential numbering.
-
 ```{r plots, fig.width=10, fig.height=8}
 print_barplots <- 0  # Set to 1 to generate individual protein barplots (slow for large datasets)
 
-source("../code/05_Plots.R")
+source("../code/de_plots.R")
+
+## Sample correlation + significant-protein heatmap ####
+cor_heatmap <- plot_sample_correlation(data_results)
+save_plot("Correlation_matrix", cor_heatmap, subdir = "DE", width = 8, height = 8)
+
+sig_heatmap <- plot_significant_heatmap(data_results, Exp_design)
+save_plot("Heatmap_significant", sig_heatmap, subdir = "DE", width = 8, height = 10)
+
+## PCA loadings ####
+save_plot("PCA_loadings_significant", plot_pca_loadings(data_results, "significant"),
+  subdir = "DE", width = 8, height = 6
+)
+save_plot("PCA_loadings_qval", plot_pca_loadings(data_results, "significance_qval"),
+  subdir = "DE", width = 8, height = 6
+)
+
+## Volcano plots (q-value) ####
+for (comp in comparisons) {
+  volcano <- plot_volcano_qval(data_results, comp, p_val = p_val, fc = FC)
+  save_plot(paste0("volcano_", comp), volcano, subdir = "DE", width = 8, height = 6)
+}
+
+## Fold-change correlations ####
+fc_plots <- plot_fc_correlations_all(data_results, comparisons)
+for (nm in names(fc_plots)) {
+  save_plot(paste0("FC_correlation_", nm), fc_plots[[nm]], subdir = "DE", width = 8, height = 6)
+}
+
+## Ratio heatmaps ####
+save_plot("HeatMap_ratio_padj",
+  plot_ratio_heatmap(data_results, comparisons,
+    filter_col = "significant", title = "Fold-change ratio (BH-adjusted significant)"
+  ),
+  subdir = "DE", width = 4, height = 18
+)
+save_plot("HeatMap_ratio_qval",
+  plot_ratio_heatmap(data_results, comparisons,
+    filter_col = "significance_qval", title = "Fold-change ratio (Storey q-value significant)"
+  ),
+  subdir = "DE", width = 4, height = 18
+)
+
+# exclude_clusters defaults to none excluded — inspect the dendrogram first,
+# then re-run with the cluster numbers to drop (see de_plots.R docstring)
+ratio_excluded <- plot_ratio_heatmap_excluded(data_results, comparisons, filter_col = "significance_qval", k = 6)
+save_plot("HeatMap_ratio_excluded", ratio_excluded$plot, subdir = "DE", width = 4, height = 18)
+
+## Intensity heatmaps ####
+save_plot("HeatMap_intensity_padj",
+  plot_intensity_heatmap(data_results, filter_col = "significant", show_rownames = FALSE),
+  subdir = "DE", width = 4, height = 18
+)
+save_plot("HeatMap_intensity_qval",
+  plot_intensity_heatmap(data_results, filter_col = "significance_qval"),
+  subdir = "DE", width = 6, height = 18
+)
+
+intensity_excluded <- plot_intensity_heatmap_excluded(data_results, filter_col = "significance_qval", k = 6)
+save_plot("HeatMap_intensity_excluded", intensity_excluded$plot, subdir = "DE", width = 6, height = 10)
+
+## Barplots (optional, disabled by default — set print_barplots <- 1 above) ####
+if (print_barplots) {
+  adj_barplots <- plot_protein_barplots_batched(data_results, Exp_design, significant_adjusted_data$name)
+  for (i in seq_along(adj_barplots)) {
+    save_plot(paste0("enriched_protein_barplot_adj_", i), adj_barplots[[i]], subdir = "DE", width = 8, height = 6)
+  }
+
+  pval_barplots <- plot_protein_barplots_batched(data_results, Exp_design, significant_pval_data$name)
+  for (i in seq_along(pval_barplots)) {
+    save_plot(paste0("enriched_protein_barplot_pval_", i), pval_barplots[[i]], subdir = "DE", width = 8, height = 6)
+  }
+}
 ```
 
 # Gene Ontology — Over-Representation Analysis (ORA)

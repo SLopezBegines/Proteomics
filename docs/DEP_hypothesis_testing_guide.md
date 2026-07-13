@@ -1,31 +1,41 @@
+---
+
+editor_options: 
+  markdown: 
+    wrap: 72
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
 # Hypothesis Testing in DEP: Design Matrix, Empirical Bayes, and FDR
 
-> **Audience:** Data scientists working with label-free quantification (LFQ) proteomics data using the [DEP](https://bioconductor.org/packages/DEP/) Bioconductor package.  
-> **Version context:** DEP 1.32.0, limma ≥ 3.50, R ≥ 4.x  
+> **Audience:** Data scientists working with label-free quantification (LFQ) proteomics data using the [DEP](https://bioconductor.org/packages/DEP/) Bioconductor package.\
+> **Version context:** DEP 1.32.0, limma ≥ 3.50, R ≥ 4.x\
 > **Reuse:** This document is design-agnostic in its explanations; only the code examples reference the CTRL/KO/WT experiment from this repository. Replace those with your own conditions and comparisons.
 
----
+------------------------------------------------------------------------
 
 ## Table of Contents
 
-1. [The Statistical Pipeline at a Glance](#1-the-statistical-pipeline-at-a-glance)
-2. [Empirical Bayes Moderation (limma)](#2-empirical-bayes-moderation-limma)
-3. [Design Matrix: `~0 + condition` vs `~condition`](#3-design-matrix-0--condition-vs-condition)
-4. [The `formula` Argument in `test_diff()`](#4-the-formula-argument-in-test_diff)
-5. [FDR Concepts: BH and Storey's q-value](#5-fdr-concepts-bh-and-storeys-q-value)
-6. [FDR Options in DEP and How to Override](#6-fdr-options-in-dep-and-how-to-override)
-7. [Which FDR Method Is Best for Your Design?](#7-which-fdr-method-is-best-for-your-design)
-8. [Code Inconsistency in This Repository](#8-code-inconsistency-in-this-repository)
-9. [Implementing Storey's q-value as a Drop-in Extension](#9-implementing-storeys-q-value-as-a-drop-in-extension)
+1.  [The Statistical Pipeline at a Glance](#1-the-statistical-pipeline-at-a-glance)
+2.  [Empirical Bayes Moderation (limma)](#2-empirical-bayes-moderation-limma)
+3.  [Design Matrix: `~0 + condition` vs `~condition`](#3-design-matrix-0--condition-vs-condition)
+4.  [The `formula` Argument in `test_diff()`](#4-the-formula-argument-in-test_diff)
+5.  [FDR Concepts: BH and Storey's q-value](#5-fdr-concepts-bh-and-storeys-q-value)
+6.  [FDR Options in DEP and How to Override](#6-fdr-options-in-dep-and-how-to-override)
+7.  [Which FDR Method Is Best for Your Design?](#7-which-fdr-method-is-best-for-your-design)
+8.  [Code Inconsistency in This Repository](#8-code-inconsistency-in-this-repository)
+9.  [Implementing Storey's q-value as a Drop-in Extension](#9-implementing-storeys-q-value-as-a-drop-in-extension)
 10. [Decision Checklist](#10-decision-checklist)
 
----
+------------------------------------------------------------------------
 
 ## 1. The Statistical Pipeline at a Glance
 
 When you call `DEP::test_diff()`, the following sequence happens internally:
 
-```
+```         
 SummarizedExperiment (normalized, imputed intensities)
         │
         ▼
@@ -54,11 +64,13 @@ SummarizedExperiment (normalized, imputed intensities)
 
 Each step is described in detail in the sections below.
 
----
+------------------------------------------------------------------------
 
 ## 2. Empirical Bayes Moderation (limma)
-[^1]
-### The core problem limma solves
+
+[^1] \### The core problem limma solves
+
+[^1]: [\^2]
 
 In a standard t-test, the variance estimate for each protein is computed from its own replicates only. With 4 replicates per condition (as in this experiment), variance estimates are **noisy** — a protein could look significant simply because its variance happened to be estimated very low by chance.
 
@@ -91,15 +103,15 @@ This follows a t-distribution with $d_0 + d_g$ degrees of freedom (more degrees 
 ### What this means in practice
 
 | Situation | Without EB | With EB |
-|---|---|---|
+|------------------------|------------------------|------------------------|
 | Protein with low variance by chance | Falsely significant | Pulled toward global variance — less extreme |
 | Protein with high variance by chance | Falsely non-significant | Pulled toward global variance — less conservative |
 | Protein with many NAs, few replicates | Very unstable | Strongly borrows from global prior |
 | Large experiment (many replicates) | Both converge | Borrowing effect diminishes — both agree |
 
-With only 4 replicates per condition (as in this repository), EB moderation provides a substantial stability benefit. The prior is estimated across all proteins quantified (~thousands in a typical LFQ experiment), so the estimates are robust.
+With only 4 replicates per condition (as in this repository), EB moderation provides a substantial stability benefit. The prior is estimated across all proteins quantified (\~thousands in a typical LFQ experiment), so the estimates are robust.
 
----
+------------------------------------------------------------------------
 
 ## 3. Design Matrix: `~0 + condition` vs `~condition`
 
@@ -111,15 +123,15 @@ This is R's default when a factor is included in a formula with an intercept.
 
 Assuming `condition` levels are `CTRL`, `KO`, `WT` (alphabetical → CTRL is reference):
 
-| Coefficient | Meaning |
-|---|---|
+| Coefficient   | Meaning                        |
+|---------------|--------------------------------|
 | `(Intercept)` | mean of CTRL (reference level) |
-| `conditionKO` | KO − CTRL |
-| `conditionWT` | WT − CTRL |
+| `conditionKO` | KO − CTRL                      |
+| `conditionWT` | WT − CTRL                      |
 
 **Design matrix** (12 samples, 4 per group):
 
-```
+```         
           Intercept  conditionKO  conditionWT
 CTRL_1        1            0            0
 CTRL_2        1            0            0
@@ -141,15 +153,15 @@ To test KO_vs_WT you must construct the contrast `conditionKO - conditionWT`, wh
 
 Removing the intercept with `0` or `-1` gives each level its own coefficient equal to the group mean:
 
-| Coefficient | Meaning |
-|---|---|
+| Coefficient     | Meaning      |
+|-----------------|--------------|
 | `conditionCTRL` | mean of CTRL |
-| `conditionKO` | mean of KO |
-| `conditionWT` | mean of WT |
+| `conditionKO`   | mean of KO   |
+| `conditionWT`   | mean of WT   |
 
 **Design matrix:**
 
-```
+```         
           conditionCTRL  conditionKO  conditionWT
 CTRL_1         1              0            0
 CTRL_2         1              0            0
@@ -176,7 +188,7 @@ This is why `type = "manual"` and `~0 + condition` work naturally together.
 ### Which to choose?
 
 | Scenario | Recommended parameterization |
-|---|---|
+|------------------------------------|------------------------------------|
 | You want all pairwise comparisons | `~0 + condition` + `type = "manual"` |
 | You have a clear reference group and compare everything to it | `~condition` + `type = "control"` |
 | You want DEP to auto-generate all pairwise contrasts | `~0 + condition` + `type = "all"` |
@@ -184,13 +196,13 @@ This is why `type = "manual"` and `~0 + condition` work naturally together.
 
 > **This repository** uses `~0 + condition` + `type = "manual"` + explicit `comparisons` vector → correct choice for the experimental design.
 
----
+------------------------------------------------------------------------
 
 ## 4. The `formula` Argument in `test_diff()`
 
 ### Function signature
 
-```r
+``` r
 test_diff(
   se,                                  # SummarizedExperiment (input data)
   type,                                # "control" | "all" | "manual"
@@ -204,23 +216,24 @@ test_diff(
 
 ### How the formula affects hypothesis testing step by step
 
-1. **Design matrix construction:** `model.matrix(design_formula, data = colData(se))` produces the numeric matrix that encodes your experimental groups.
+1.  **Design matrix construction:** `model.matrix(design_formula, data = colData(se))` produces the numeric matrix that encodes your experimental groups.
 
-2. **Contrast generation:** depending on `type`:
-   - `"manual"`: DEP parses each string in `test` (e.g. `"CTRL_vs_WT"`) by splitting on `"_vs_"` and builds a contrast vector `conditionCTRL - conditionWT`.
-   - `"control"`: DEP generates one contrast per non-reference group.
-   - `"all"`: DEP generates all pairwise contrasts.
+2.  **Contrast generation:** depending on `type`:
 
-3. **Model fitting:** `lmFit(assay(se), design)` — the design matrix determines which samples contribute to each group mean coefficient.
+    - `"manual"`: DEP parses each string in `test` (e.g. `"CTRL_vs_WT"`) by splitting on `"_vs_"` and builds a contrast vector `conditionCTRL - conditionWT`.
+    - `"control"`: DEP generates one contrast per non-reference group.
+    - `"all"`: DEP generates all pairwise contrasts.
 
-4. **Contrast testing:** `contrasts.fit()` re-parameterizes the model to the specified contrasts, then `eBayes()` applies moderation.
+3.  **Model fitting:** `lmFit(assay(se), design)` — the design matrix determines which samples contribute to each group mean coefficient.
+
+4.  **Contrast testing:** `contrasts.fit()` re-parameterizes the model to the specified contrasts, then `eBayes()` applies moderation.
 
 ### What variables can appear in the formula?
 
 The formula can include any column from `colData(se)`. Most commonly:
 
 | Formula | Effect |
-|---|---|
+|------------------------------------|------------------------------------|
 | `~0 + condition` | Group means only (most common) |
 | `~0 + condition + batch` | Correct for batch effects (one continuous or categorical covariate) |
 | `~0 + condition + sex` | Correct for sex as a covariate |
@@ -230,28 +243,24 @@ The formula can include any column from `colData(se)`. Most commonly:
 
 ### How to select the formula for this experiment
 
-The experimental design is:
-- 3 conditions: CTRL, KO, WT
-- 4 replicates each (n = 12 total)
-- No batch variables recorded
-- Replicates are independent biological replicates
+The experimental design is: - 3 conditions: CTRL, KO, WT - 4 replicates each (n = 12 total) - No batch variables recorded - Replicates are independent biological replicates
 
 → Correct formula: `formula(~0 + condition)` — as used in `04_data_analysis.R`.
 
 If a batch variable were present (e.g., samples processed on two different days), you would extend it:
 
-```r
+``` r
 # hypothetical batch correction
 design_formula = formula(~0 + condition + batch)
 ```
 
----
+------------------------------------------------------------------------
 
 ## 5. FDR Concepts: BH and Storey's q-value
 
 ### The multiple testing problem
 
-When testing thousands of proteins simultaneously, false positives accumulate. If you apply a nominal p-value threshold of 0.05 to 3000 proteins, you expect ~150 false positives by chance alone under the null.
+When testing thousands of proteins simultaneously, false positives accumulate. If you apply a nominal p-value threshold of 0.05 to 3000 proteins, you expect \~150 false positives by chance alone under the null.
 
 **False Discovery Rate (FDR)** is the expected proportion of false positives among all rejected tests:
 
@@ -282,7 +291,7 @@ The intuition: if you look at p-values near 1 (where almost all are null), their
 **Comparison:**
 
 | Property | BH | Storey q-value |
-|---|---|---|
+|------------------------|------------------------|------------------------|
 | Controls FDR? | Yes, at exactly $\alpha$ | Yes, adaptively |
 | Assumes $\pi_0$ | 1 (conservative) | Estimated from data |
 | Power when $\pi_0 < 1$ | Lower | Higher |
@@ -292,7 +301,7 @@ The intuition: if you look at p-values near 1 (where almost all are null), their
 
 #### Visual intuition: p-value histogram
 
-```
+```         
 Count
   │  ████                     ← excess at low p-values = true positives
   │  ████
@@ -307,14 +316,11 @@ Count
 
 ### When does the choice matter most?
 
-The difference between BH and q-value is largest when:
-- Many proteins are truly DE (e.g., global treatment effect, strong KO phenotype)
-- Sample sizes are small (so power is a concern)
-- The number of tests is large (thousands of proteins → larger multiple testing burden)
+The difference between BH and q-value is largest when: - Many proteins are truly DE (e.g., global treatment effect, strong KO phenotype) - Sample sizes are small (so power is a concern) - The number of tests is large (thousands of proteins → larger multiple testing burden)
 
 Both methods converge when $\pi_0 \approx 1$ (very few true positives) or when sample sizes are large.
 
----
+------------------------------------------------------------------------
 
 ## 6. FDR Options in DEP and How to Override
 
@@ -322,14 +328,14 @@ Both methods converge when $\pi_0 \approx 1$ (very few true positives) or when s
 
 DEP 1.32.0 does **not** expose a `method` argument for FDR correction. The BH method is hardcoded inside `test_diff()` via:
 
-```r
+``` r
 # DEP source — simplified
 limma::topTable(fit, coef = contrast, adjust.method = "BH", number = Inf)
 ```
 
 The `add_rejections()` function then simply applies thresholds to the `p.adj` column that `test_diff()` already computed:
 
-```r
+``` r
 add_rejections(dep, alpha = 0.05, lfc = 1)
 # marks as significant: p.adj < alpha AND abs(ratio) > lfc
 ```
@@ -342,7 +348,7 @@ There is no FDR method argument in `add_rejections()` either.
 
 Run DEP normally to get results, then replace or supplement `p.adj` with q-values:
 
-```r
+``` r
 library(qvalue)
 
 results <- get_results(dep_analysis)
@@ -367,7 +373,7 @@ Then filter on `q.val` instead of `p.adj`.
 
 #### Strategy B: Apply `p.adjust()` with any method to the raw p-values
 
-```r
+``` r
 results <- get_results(dep_analysis)
 
 for (comp in comparisons) {
@@ -380,7 +386,7 @@ for (comp in comparisons) {
 Supported `method` values in `p.adjust()`:
 
 | Method | Type | When to use |
-|---|---|---|
+|------------------------|------------------------|------------------------|
 | `"BH"` | FDR (Benjamini-Hochberg) | Default; balanced power/control |
 | `"BY"` | FDR (Benjamini-Yekutieli) | When tests are positively dependent (correlated proteins) |
 | `"bonferroni"` | FWER | Very few tests; strict error control required |
@@ -392,7 +398,7 @@ Supported `method` values in `p.adjust()`:
 
 If you want to keep the DEP object structure, add a custom post-processing step:
 
-```r
+``` r
 add_qvalue_rejections <- function(dep, alpha = 0.05, lfc = 1, comparisons) {
   results_df <- get_results(dep)
   
@@ -413,19 +419,19 @@ add_qvalue_rejections <- function(dep, alpha = 0.05, lfc = 1, comparisons) {
 }
 ```
 
----
+------------------------------------------------------------------------
 
 ## 7. Which FDR Method Is Best for Your Design?
 
 ### Characteristics of this experiment
 
 | Parameter | Value | Implication |
-|---|---|---|
+|------------------------|------------------------|------------------------|
 | Conditions | 3 (CTRL, KO, WT) | 3 independent pairwise contrasts |
 | Replicates | 4 per condition | Small $n$ → EB moderation critical |
 | Comparisons | 3 (`CTRL_vs_WT`, `CTRL_vs_KO`, `KO_vs_WT`) | Independent tests per contrast |
-| Proteins tested | ~hundreds to thousands | Large multiple testing burden |
-| Expected biology | KO likely has many DE proteins | $\pi_0$ likely < 1 → q-value gain possible |
+| Proteins tested | \~hundreds to thousands | Large multiple testing burden |
+| Expected biology | KO likely has many DE proteins | $\pi_0$ likely \< 1 → q-value gain possible |
 
 ### Recommendation
 
@@ -433,15 +439,15 @@ add_qvalue_rejections <- function(dep, alpha = 0.05, lfc = 1, comparisons) {
 
 **Reasoning:**
 
-1. With thousands of proteins and a meaningful KO, $\pi_0$ is likely 0.7–0.9, not 1.0. BH overcorrects in this range.
-2. With only 4 replicates, power is limited — recovering more true positives with q-value matters.
-3. The q-value p-value distribution assumption holds because limma p-values are well-calibrated (the EB moderation improves the degrees of freedom estimate).
+1.  With thousands of proteins and a meaningful KO, $\pi_0$ is likely 0.7–0.9, not 1.0. BH overcorrects in this range.
+2.  With only 4 replicates, power is limited — recovering more true positives with q-value matters.
+3.  The q-value p-value distribution assumption holds because limma p-values are well-calibrated (the EB moderation improves the degrees of freedom estimate).
 
 **When to stick with BH:**
 
 - If the p-value histogram does not show a clear spike near zero (few true positives → $\pi_0 \approx 1$, q-value gives no benefit).
 - For the diagnostic comparison of imputation methods (`DE_analysis()` in `03_cleaning_data_mixed_imputation.R`) — BH is sufficient there because the goal is relative comparison, not absolute significance claims.
-- When the number of tested proteins is small (<200 per comparison after filtering).
+- When the number of tested proteins is small (\<200 per comparison after filtering).
 
 ### Cross-comparison FDR: should you correct globally or per comparison?
 
@@ -452,7 +458,7 @@ DEP applies correction **per comparison** (each contrast separately). This is th
 
 Global FDR across all comparisons is appropriate only when you are pooling tests that are exchangeable (same null hypothesis across comparisons) — not the case here.
 
----
+------------------------------------------------------------------------
 
 ## 8. Code Inconsistency in This Repository
 
@@ -460,7 +466,7 @@ Global FDR across all comparisons is appropriate only when you are pooling tests
 
 The `DE_analysis()` helper in `03_cleaning_data_mixed_imputation.R` calls `test_diff()` without `design_formula`:
 
-```r
+``` r
 # 03_cleaning_data_mixed_imputation.R, lines 779–784
 DE_analysis <- function(se) {
   se %>%
@@ -472,7 +478,7 @@ DE_analysis <- function(se) {
 
 The main analysis in `04_data_analysis.R` explicitly passes it:
 
-```r
+``` r
 dep_analysis <- analyze_dep(imputation_file,
                             type    = "manual",
                             control = NULL,
@@ -492,7 +498,7 @@ However, the omission is a **readability and maintainability risk**: if the defa
 
 Make the formula explicit in the diagnostic function. In `03_cleaning_data_mixed_imputation.R`, line 780:
 
-```r
+``` r
 # Before
 DE_analysis <- function(se) {
   se %>%
@@ -511,15 +517,15 @@ DE_analysis <- function(se) {
 }
 ```
 
-Also note: `lfc = log2(FC)` in the diagnostic function passes `log2(0.5) ≈ −0.585` as the fold-change threshold, while `analyze_dep(..., lfc = FC)` passes `0.5` directly. The `add_rejections()` `lfc` argument is in log2 scale, but `analyze_dep()`'s `lfc` argument is also in log2 scale — both are consistent. However, `FC = 0.5` means ±0.5 in log2, which corresponds to a fold-change of ~1.41×, not 2×. Verify this threshold is intentional.
+Also note: `lfc = log2(FC)` in the diagnostic function passes `log2(0.5) ≈ −0.585` as the fold-change threshold, while `analyze_dep(..., lfc = FC)` passes `0.5` directly. The `add_rejections()` `lfc` argument is in log2 scale, but `analyze_dep()`'s `lfc` argument is also in log2 scale — both are consistent. However, `FC = 0.5` means ±0.5 in log2, which corresponds to a fold-change of \~1.41×, not 2×. Verify this threshold is intentional.
 
----
+------------------------------------------------------------------------
 
 ## 9. Implementing Storey's q-value as a Drop-in Extension
 
 The following function can be added to `code/aux_functions.R` or called directly in the analysis pipeline. It extends the DEP results table with q-values per comparison.
 
-```r
+``` r
 # Requires: qvalue (Bioconductor)
 # Input:  dep_analysis object from analyze_dep() or test_diff()
 #         comparisons character vector
@@ -573,7 +579,7 @@ get_results_with_qvalue <- function(dep_analysis, comparisons, alpha = 0.05, lfc
 
 ### Usage in `04_data_analysis.R`
 
-```r
+``` r
 # After running data_analysis(), supplement with q-values:
 results_qval <- get_results_with_qvalue(
   dep_analysis = dep_analysis,
@@ -598,23 +604,31 @@ for (comp in comparisons) {
 }
 ```
 
----
+------------------------------------------------------------------------
 
 ## 10. Decision Checklist
-- [ ] 
-Before running the differential analysis, verify each item:
+
+- [ ] Before running the differential analysis, verify each item:
 
 - [ ] **Formula matches type:** `~0 + condition` with `type = "manual"` OR `~condition` with `type = "control"`.
+
 - [ ] **Contrast strings match condition labels exactly:** Check `unique(colData(se)$condition)` and compare with your `comparisons` vector.
+
 - [ ] **`design_formula` is explicit** in all calls to `test_diff()` (not relying on the default).
+
 - [ ] **Batch effects:** If `colData(se)` has a batch variable, include it in the formula: `~0 + condition + batch`.
+
 - [ ] **FDR method matches your claim:** Use BH for conservative exploratory analysis; use Storey's q-value when power is critical and $\pi_0 < 1$ is expected.
+
 - [ ] **FDR applied per comparison:** Do not pool p-values across comparisons before correction.
+
 - [ ] **Inspect p-value histogram** per comparison to verify the null distribution is uniform at high p-values (validates EB calibration and FDR assumptions).
+
 - [ ] **FC threshold units:** `add_rejections(lfc = ...)` expects log2 scale; `analyze_dep(lfc = ...)` also expects log2 scale. Do not exponentiate.
+
 - [ ] **`significant` vs `significance`:** In this codebase, `significant` (from `add_rejections`) requires *all* comparisons to be consistent (DEP's global flag); `significance` (added in `04_data_analysis.R`) is TRUE if *any* comparison passes the nominal threshold. Use the appropriate one for your question.
 
----
+------------------------------------------------------------------------
 
 ## References
 
@@ -624,7 +638,3 @@ Before running the differential analysis, verify each item:
 - Zhang X et al. (2018). *Proteome-wide identification of ubiquitin interactions using UbIA-MS.* Nature Protocols. (DEP paper)
 - [DEP Bioconductor vignette](https://bioconductor.org/packages/DEP/)
 - [limma User's Guide](https://bioconductor.org/packages/limma/)
-
-[^1]: [^2]
-[^2]: [^3]
-[^3]: 
