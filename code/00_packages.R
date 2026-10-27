@@ -52,7 +52,8 @@ cran_packages <- c(
   "mdatools", "pheatmap", "rstatix", "rrcov",
   "ggvenn", "ComplexUpset", "RColorBrewer", "patchwork",
   "qvalue", "truncnorm", "broom", "gmp", "mixOmics", "msigdbr", "randomForest",
-  "enrichR", "readxl", "rmdformats", "VIM"
+  "enrichR", "readxl", "rmdformats", "VIM",
+  "viridis", "imputeLCMD", "circlize"
 )
 load_pkgs(cran_packages)
 # =============================================================================
@@ -61,11 +62,14 @@ load_pkgs(cran_packages)
 message("[PACKAGES] Loading Bioconductor packages...")
 
 
-packages_bioconductor <- c(
-  "BiocVersion",
-  "biomaRt", "org.Dr.eg.db", "org.Mm.eg.db", "org.Hs.eg.db", "clusterProfiler", "enrichplot", "STRINGdb",
-  "pathview", "limma", "ComplexHeatmap", "viridis", "edgeR", "vsn", "DEP"
-)
+# bioc:: makes pak resolve against the Bioconductor release matching the
+# running R (R 4.6 -> Bioc 3.23). BiocVersion is pulled in as a dependency.
+# DEP is intentionally absent: it was removed from Bioc 3.23.
+packages_bioconductor <- paste0("bioc::", c(
+  "biomaRt", "org.Dr.eg.db", "org.Mm.eg.db", "org.Hs.eg.db",
+  "clusterProfiler", "enrichplot", "STRINGdb", "pathview", "limma",
+  "ComplexHeatmap", "edgeR", "vsn", "SummarizedExperiment", "impute", "DEP"
+))
 
 load_pkgs(packages_bioconductor)
 
