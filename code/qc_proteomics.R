@@ -431,24 +431,20 @@ plot_intensity_detect <- function(se) {
 
 #' Run all (or selected) PRONE normalization methods on a filtered SE
 #'
-#' @param se      SummarizedExperiment filtered by filter_missing(); assay
-#'                named "intensity" in log2 scale
-#' @param methods Character vector of PRONE method names; NULL = all available
-#' @return PRONE SummarizedExperiment (one assay per method, plus the raw assay)
-normalize_prone <- function(se, methods = NULL) {
-  # PRONE expects the assay to be named "log2_intensity" (verify against PRONE docs)
-  if (!"log2_intensity" %in% SummarizedExperiment::assayNames(se)) {
-    SummarizedExperiment::assayNames(se)[
-      SummarizedExperiment::assayNames(se) == "intensity"
-    ] <- "log2_intensity"
-  }
-
-  if (is.null(methods)) methods <- PRONE::get_normalization_methods()
-
-  # Run normalization — verify the exact function name against PRONE documentation
-  # Expected signature: PRONE::normalize(se, methods = methods)
-  se_norm <- PRONE::normalize_se(se, methods = methods)
-  se_norm
+#' Thin wrapper kept for backwards compatibility; the adaptation of the SE to
+#' PRONE's conventions lives in code/prone_helpers.R (as_prone_se(),
+#' prone_select_methods(), run_prone_normalization()), which must be sourced.
+#'
+#' @param se      SummarizedExperiment filtered by filter_missing_frac(); linear
+#'                scale assay named "intensity"
+#' @param methods Character vector of PRONE method names; NULL = every method
+#'                valid for the design (see prone_select_methods())
+#' @param batch_col Character(1) or NULL. colData batch column (see
+#'                as_prone_se()); NULL = no batch.
+#' @return PRONE SummarizedExperiment (assays raw, log2 and one per method)
+normalize_prone <- function(se, methods = NULL, batch_col = NULL) {
+  if (is.null(methods)) methods <- prone_select_methods(se, batch_col = batch_col)
+  run_prone_normalization(se, methods = methods, batch_col = batch_col)
 }
 
 
