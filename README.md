@@ -2,6 +2,11 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Language: R](https://img.shields.io/badge/Language-R%20%E2%89%A54.3-276DC3.svg)](https://www.r-project.org/) [![Bioconductor](https://img.shields.io/badge/Bioconductor-%E2%89%A53.18-85BB65.svg)](https://bioconductor.org/)
 
+> **Branch `main` / `r4.6.1` — R 4.6.1, Bioconductor 3.23, DEP-free.**
+> Differential expression runs on limma directly (`code/de_analysis.R`, `code/qc_proteomics.R`, `code/prone_helpers.R`); entry point: `mains/general_template.qmd`.
+> Restore the environment with `renv::restore()` (uses `renv.lock`).
+> The DEP-based pipeline (R 4.5.3, Bioc 3.22) lives in the `legacy-dep` branch; `renv-R453.lock` is kept here only as a reference. DEP cannot be installed on R 4.6.x. Where the sections below mention DEP, they describe the legacy pipeline.
+
 A modular and reproducible R pipeline for label-free quantitative (LFQ) proteomics data analysis. Designed to process MaxQuant output from Orbitrap and Q-Exactive mass spectrometers, covering the complete workflow from raw protein groups to functional enrichment.
 
 ## Pipeline Overview
