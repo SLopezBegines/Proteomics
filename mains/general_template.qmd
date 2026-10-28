@@ -45,21 +45,21 @@ Run first with `analysis_mode <- "exploratory"` to compare every normalization a
 
 ```{r config-project}
 # --- Project ---
-dataset_name <- "my_dataset" # used for output folder and summary tables
+dataset_name <- "joan_461" # used for output folder and summary tables
 
 # organism_key selects KEGG code, NCBI taxonomy ID and Bioconductor OrgDb:
 #   "human" (hsa, 9606), "mouse" (mmu, 10090), "zebrafish" (dre, 7955), "rat" (rno, 10116)
-organism_key <- "human"
+organism_key <- "mouse"
 
 # Output root. The trailing "/" is required while some scripts in code/
 # still build paths with paste0(output_path, "tables/...") instead of file.path().
-output_path <- paste0(file.path("output", dataset_name), "/")
+output_path <- paste0(file.path("output", dataset_name))
 image_number <- 1 # Sequential counter for figure numbering
 
 # --- Input data ---
 # software: "diann" (pg_matrix.tsv / pr_matrix.tsv) or "maxquant" (proteinGroups.txt)
 software <- "diann"
-prot_file <- "../rawdata/protein_groups.tsv" # protein-level matrix
+prot_file <- "../rawdata/joan_skin_colon.xlsx" # protein-level matrix
 pep_file <- NULL # precursor/peptide-level matrix (DIA-NN pr_matrix); NULL = skip the peptide filter
 min_peptides <- 2 # keep proteins with >= min_peptides distinct peptides in at least one sample
 ```
@@ -80,7 +80,7 @@ If the file does not exist, a template is written to that path and rendering sto
   If the sheet is missing, all pairwise contrasts are generated.
 
 ```{r config-design}
-design_file <- "../rawdata/experiment_design.xlsx"
+design_file <- "../rawdata/experiment_design_joan.xlsx"
 ```
 
 ## Analysis decisions
@@ -99,11 +99,11 @@ min_valid_fraction <- 0.75
 # Options: "GlobalMean", "GlobalMedian", "Median", "Mean", "Quantile", "VSN", "LoessF",
 #          "LoessCyc", "RLR", "RlrMA", "RlrMACyc", "EigenMS", "MAD", "RobNorm", "TMM",
 #          "NormicsVSN", "NormicsMedian" (+ "limBE" if the design has >= 2 batches)
-norm_method <- "Median"
+norm_method <- "MAD"
 
 # --- Imputation ---
 # Options: "MinProb", "man", "knn", "QRILC", "Mixed"
-imputation_method <- "knn"
+imputation_method <- "Mixed"
 imputation_params <- list(
   mnar_fraction_NA = 0.6, # MNAR/MAR split: max fraction of NA in a condition to call it MAR
   minprob_q = 0.01,
@@ -326,7 +326,7 @@ Load the protein-level table and apply the initial preprocessing: sample columns
 
 ```{r load-data}
 prot_data <- readr::read_tsv(prot_file, show_col_types = FALSE)
-
+prot_data <- readxl::read_xlsx(prot_file)
 # Standardize metadata column names
 for (nm in names(software_columns[[software]])) {
   prot_data <- rename_column(prot_data, software_columns[[software]][[nm]], nm)

@@ -60,6 +60,7 @@ Source the core pipeline modules. These scripts define the functions used throug
 
 ```{r load-functions, message=FALSE, warning=FALSE}
 #renv::restore()
+RENV_PATHS_LOCKFILE=renv-R453.lock rig run 4.5.3
 source("../code/00_packages_R453.R")
 ```
 

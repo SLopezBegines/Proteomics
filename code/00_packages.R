@@ -45,7 +45,6 @@ load_pkgs <- function(pkgs) {
 # =============================================================================
 # CRAN packages# =============================================================================
 message("[PACKAGES] Loading CRAN packages...")
-# Usage example
 cran_packages <- c(
   "tidyverse", "writexl", "ggrepel", "knitr",
   "kableExtra", "openxlsx", "ggfortify", "rbioapi",
@@ -68,32 +67,15 @@ message("[PACKAGES] Loading Bioconductor packages...")
 packages_bioconductor <- paste0("bioc::", c(
   "biomaRt", "org.Dr.eg.db", "org.Mm.eg.db", "org.Hs.eg.db",
   "clusterProfiler", "enrichplot", "STRINGdb", "pathview", "limma",
-  "ComplexHeatmap", "edgeR", "vsn", "SummarizedExperiment", "impute", "DEP"
+  "ComplexHeatmap", "edgeR", "vsn", "SummarizedExperiment", "impute", "S4Vectors", "PRONE"
 ))
 
 load_pkgs(packages_bioconductor)
 
-# =============================================================================
-# GitHub packages
-# =============================================================================
-message("[PACKAGES] Loading GitHub packages...")
-gh_packages <- c(
-  "PRONE" = "daisybio/PRONE"
-)
-
-for (pkg_name in names(gh_packages)) {
-  pkg_spec <- gh_packages[[pkg_name]]
-  if (!requireNamespace(pkg_name, quietly = TRUE)) {
-    message("[INSTALL] Installing from GitHub: ", pkg_spec)
-    pak::pkg_install(pkg_spec, ask = FALSE, upgrade = FALSE)
-  }
-  if (requireNamespace(pkg_name, quietly = TRUE)) {
-    suppressPackageStartupMessages(suppressWarnings(
-      library(pkg_name, character.only = TRUE, warn.conflicts = FALSE, quietly = TRUE)
-    ))
-  }
-}
+#install.packages("devtools")
+#library(devtools)
+#devtools::install_github("cit-bioinfo/mMCP-counter")
 
 #   renv::snapshot()
 
-rm(check_sysreqs, load_pkgs, cran_packages, packages_bioconductor, gh_packages)
+rm(check_sysreqs, load_pkgs, cran_packages, packages_bioconductor)
