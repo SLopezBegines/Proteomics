@@ -2,6 +2,11 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Language: R](https://img.shields.io/badge/Language-R%20%E2%89%A54.3-276DC3.svg)](https://www.r-project.org/) [![Bioconductor](https://img.shields.io/badge/Bioconductor-%E2%89%A53.18-85BB65.svg)](https://bioconductor.org/)
 
+> **Branch `legacy-dep` — R 4.5.3, Bioconductor 3.22, DEP 1.32.0.**
+> Frozen DEP-based pipeline (normalisation, imputation and differential expression via DEP/limma). Entry point: `mains/IP-CLN3_PXD031582.Rmd`.
+> Requires R 4.5.3 (`rig default 4.5.3`; `.Rprofile` warns otherwise), then run `renv::restore()` (uses `renv.lock`).
+> DEP was removed from Bioconductor 3.23 and its dependencies do not compile on R 4.6.x. The maintained DEP-free pipeline is in `main` / `r4.6.1`.
+
 A modular and reproducible R pipeline for label-free quantitative (LFQ) proteomics data analysis. Designed to process MaxQuant output from Orbitrap and Q-Exactive mass spectrometers, covering the complete workflow from raw protein groups to functional enrichment.
 
 ## Pipeline Overview
