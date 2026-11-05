@@ -45,5 +45,7 @@ libraries_bioconductor <- c(
 install_and_load_library(libraries)
 install_and_load_library_bioconductor(libraries_bioconductor)
 
-
+# install.packages("devtools")
+# library(devtools)
+# devtools::install_github("cit-bioinfo/mMCP-counter")
 rm("install_and_load_library_bioconductor", "install_and_load_library", "libraries", "libraries_bioconductor")

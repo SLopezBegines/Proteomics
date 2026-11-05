@@ -1,8 +1,8 @@
 # Loading libraries ####
 
-install.packages("devtools")
-library(devtools)
-devtools::install_github("cit-bioinfo/mMCP-counter")
+# install.packages("devtools")
+# library(devtools)
+# devtools::install_github("cit-bioinfo/mMCP-counter")
 # renv::snapshot(lockfile = "renv-R543.lockº)
 
 
