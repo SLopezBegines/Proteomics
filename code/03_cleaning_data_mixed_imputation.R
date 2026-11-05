@@ -41,7 +41,7 @@ data_cleaning <- function(prot_data, # input dataset
                           factor_SD_impute = c(0.05, 0.1, 0.2),
                           factor_SD_scale = 0.3,
                           mnar_var = c("zero", "MinProb", "QRILC")) {
-  create_directories(paste0(output_path)) # Function from Globalvariables file to creates folder
+  create_directories(output_path) # Function from Globalvariables file to creates folder
 
 
   name_df <- deparse(substitute(prot_data))
@@ -60,6 +60,8 @@ data_cleaning <- function(prot_data, # input dataset
   LFQ_columns <- which(colnames(prot_data) %in% Exp_design$label)
   # get LFQ column numbers
   LFQ_columns
+  # Convert columns to numeric
+  data_unique[LFQ_columns] <- lapply(data_unique[LFQ_columns], function(x) as.numeric(as.character(x)))
 
   data_se <- make_se(data_unique, LFQ_columns, Exp_design)
 
@@ -75,7 +77,7 @@ data_cleaning <- function(prot_data, # input dataset
   # Plot a barplot of the protein identification overlap between samples
   p1 <- plot_frequency(data_se)
   save_plot("protein_identification_overlap", p1,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 8
   )
 
@@ -89,21 +91,21 @@ allowed number of missing values per condition in the filter_missvalfunction."
   # Filter for proteins that are identified in 3 out of 4 replicates of at least one condition
   # filters a proteomics dataset based on missing values. The dataset is filtered for  proteins that have a maximum of 'thr' missing values in at least one condition.
   data_filt <- filter_missval(data_se, thr = 1)
-  save(data_filt, file = paste0(output_path, "RData/data_filt_", name_df, ".RData"))
+  save(data_filt, file = file.path(output_path, "RData", paste0("data_filt_", name_df, ".RData")))
 
   "After filtering, the number of identified proteins per sample can be
 plotted as well as the overlap in identifications between samples.
 "
   p2 <- plot_numbers(data_filt)
   save_plot("protein_per_sample", p2,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 8
   )
 
 
   p3 <- plot_coverage(data_filt)
   save_plot("protein_coverage", p3,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 8
   )
 
@@ -111,14 +113,14 @@ plotted as well as the overlap in identifications between samples.
   # The data is background corrected and normalized by variance stabilizing transformation (vsn).
   # Normalize the data
   data_norm <- normalize_vsn(data_filt)
-  save(data_norm, file = paste0(output_path, "RData/data_norm_", name_df, ".RData"))
+  save(data_norm, file = file.path(output_path, "RData", paste0("data_norm_", name_df, ".RData")))
 
   p <- summary(DEP::meanSdPlot(data_norm))
   print(p)
 
   p4 <- plot_normalization(data_filt, data_norm)
   save_plot("normalized_data", p4,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 8
   )
 
@@ -130,7 +132,7 @@ plotted as well as the overlap in identifications between samples.
     tag_levels = "A"
   )
   save_plot("QC_data_overview", p,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 16, height = 12
   )
 
@@ -214,7 +216,7 @@ normalization."
     # Guardar si se especifica output_path
     if (!is.null(output_path)) {
       save_plot(file_prefix, final_plot,
-        output_dir = paste0(output_path, "figures"),
+        subdir = "QC",
         width = 12, height = 10
       )
       message("✅ Graph stored in ", output_path)
@@ -249,7 +251,7 @@ To explore the pattern of missing values in the data, a heatmap is
 plotted indicating whether values are missing (0) or not (1). Only
 proteins with at least one missing value are visualized. "
 
-  filename <- paste0(output_path, "figures/", sprintf("%03d", image_number), "_missing_values_", name_df) # Name of output file.
+  filename <- paste0(output_path, "/", "figures/", sprintf("%03d", image_number), "_missing_values_", name_df) # Name of output file.
 
 
   # Step 1: Call the pdf command to start the plot
@@ -293,7 +295,7 @@ values."
   # Plot intensity distributions and cumulative fraction of proteins with and without missing values
   p <- plot_detect(data_filt)
   save_plot("protein_imputation", p,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 6
   )
 
@@ -373,7 +375,7 @@ specifically the impute function description for more information.'
     )
 
   # save proteins_MNAR as xlsx
-  write.xlsx(proteins_MNAR, paste0(output_path, "tables/proteins_MNAR_", name_df, ".xlsx"))
+  write.xlsx(proteins_MNAR, file.path(output_path, "tables", paste0("proteins_MNAR_", name_df, ".xlsx")))
 
 
   # 2. Get the unique conditions from the SummarizedExperiment metadata.
@@ -622,7 +624,7 @@ specifically the impute function description for more information.'
       theme_minimal()
 
     save_plot("%02d_SD_before_after_scatter", p1,
-      output_dir = paste0(output_path, "figures"),
+      subdir = "QC",
       width = 12, height = 16
     )
   }
@@ -644,20 +646,20 @@ specifically the impute function description for more information.'
 
   # Exporting results for data analysis ####
 
-  save(data_imp, file = paste0(output_path, "RData/data_imp_", name_df, ".RData"))
-  save(data_imp_man_gauss, file = paste0(output_path, "RData/data_imp_man_gauss_", name_df, ".RData"))
-  save(data_imp_knn, file = paste0(output_path, "RData/data_imp_knn_", name_df, ".RData"))
-  save(mixed_splited_imputation, file = paste0(output_path, "RData/mixed_splited_imputation_", name_df, ".RData"))
-  save(manual_imputation, file = paste0(output_path, "RData/manual_imputation_", name_df, ".RData"))
-  save(data_imp_QRILC, file = paste0(output_path, "RData/data_imp_QRILC_", name_df, ".RData"))
+  save(data_imp, file = file.path(output_path, "RData", paste0("data_imp_", name_df, ".RData")))
+  save(data_imp_man_gauss, file = file.path(output_path, "RData", paste0("data_imp_man_gauss_", name_df, ".RData")))
+  save(data_imp_knn, file = file.path(output_path, "RData", paste0("data_imp_knn_", name_df, ".RData")))
+  save(mixed_splited_imputation, file = file.path(output_path, "RData", paste0("mixed_splited_imputation_", name_df, ".RData")))
+  save(manual_imputation, file = file.path(output_path, "RData", paste0("manual_imputation_", name_df, ".RData")))
+  save(data_imp_QRILC, file = file.path(output_path, "RData", paste0("data_imp_QRILC_", name_df, ".RData")))
 
-  load(paste0(output_path, "RData/data_imp_", name_df, ".RData"))
-  load(paste0(output_path, "RData/data_imp_man_gauss_", name_df, ".RData"))
-  load(paste0(output_path, "RData/data_imp_knn_", name_df, ".RData"))
-  load(paste0(output_path, "RData/manual_imputation_", name_df, ".RData"))
-  load(paste0(output_path, "RData/mixed_splited_imputation_", name_df, ".RData"))
-  load(paste0(output_path, "RData/data_norm_", name_df, ".RData"))
-  load(paste0(output_path, "RData/data_imp_QRILC_", name_df, ".RData"))
+  load(file.path(output_path, "RData", paste0("data_imp_", name_df, ".RData")))
+  load(file.path(output_path, "RData", paste0("data_imp_man_gauss_", name_df, ".RData")))
+  load(file.path(output_path, "RData", paste0("data_imp_knn_", name_df, ".RData")))
+  load(file.path(output_path, "RData", paste0("manual_imputation_", name_df, ".RData")))
+  load(file.path(output_path, "RData", paste0("mixed_splited_imputation_", name_df, ".RData")))
+  load(file.path(output_path, "RData", paste0("data_norm_", name_df, ".RData")))
+  load(file.path(output_path, "RData", paste0("data_imp_QRILC_", name_df, ".RData")))
 
   # Dynamically assign the data frame to the global environment
   assign("data_imp", data_imp, envir = .GlobalEnv)
@@ -670,7 +672,7 @@ specifically the impute function description for more information.'
   # Visualization of imputation effect
   p <- plot_imputation(data_norm, data_imp, data_imp_man_gauss, data_imp_knn, manual_imputation, mixed_splited_imputation, data_imp_QRILC)
   save_plot("protein_imputation_distribution", p,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 12
   )
 
@@ -690,42 +692,42 @@ specifically the impute function description for more information.'
   # PCA MinProb
   pca_minprob <- plot_pca(dep_analysis_min, x = 2, y = 1, n = (length(dep_analysis_min)), point_size = 4) + ggtitle("PCA MinProb", subtitle = paste0(length(dep_analysis_min), " variable proteins"))
   save_plot("PCA_MinProb", pca_minprob,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 6
   )
 
   # PCA Manual
   pca_manual_gauss <- plot_pca(dep_analysis_manual_gauss, x = 2, y = 1, n = (length(dep_analysis_manual_gauss)), point_size = 4) + ggtitle("PCA Manual", subtitle = paste0(length(dep_analysis_manual_gauss), " variable proteins"))
   save_plot("PCA_Manual_Gauss", pca_manual_gauss,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 6
   )
 
   # PCA KNN
   pca_knn <- plot_pca(dep_analysis_knn, x = 2, y = 1, n = (length(dep_analysis_knn)), point_size = 4) + ggtitle("PCA KNN", subtitle = paste0(length(dep_analysis_knn), " variable proteins"))
   save_plot("PCA_KNN", pca_knn,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 6
   )
 
   # PCA Mixed Splited
   pca_mixed_splited <- plot_pca(dep_analysis_mixed_splited, x = 2, y = 1, n = (length(dep_analysis_mixed_splited)), point_size = 4) + ggtitle("PCA Mixed Splited Imputation", subtitle = paste0(length(dep_analysis_mixed_splited), " variable proteins"))
   save_plot("PCA_Splited_Mixed", pca_mixed_splited,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 6
   )
 
   # PCA manual_imputation
   pca_manual_value <- plot_pca(dep_analysis_manual_value, x = 2, y = 1, n = (length(dep_analysis_manual_value)), point_size = 4) + ggtitle("PCA Manual Imputation", subtitle = paste0(length(dep_analysis_manual_value), " variable proteins"))
   save_plot("PCA_manual_imputation", pca_manual_value,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 6
   )
 
   # PCA QRILC
   pca_QRILC <- plot_pca(dep_analysis_QRILC, x = 2, y = 1, n = (length(dep_analysis_QRILC)), point_size = 4) + ggtitle("PCA QRILC", subtitle = paste0(length(dep_analysis_QRILC), " variable proteins"))
   save_plot("PCA_QRILC", pca_QRILC,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 6
   )
 
@@ -738,7 +740,7 @@ specifically the impute function description for more information.'
       tag_levels = "A"
     )
   save_plot("PCA_imputation_methods", pca_combined,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 12, height = 16
   )
 
@@ -800,15 +802,15 @@ specifically the impute function description for more information.'
 
       # Save combined plot
       save_plot("Combined_DD_Plots", combined_plot,
-        output_dir = paste0(output_path, "figures"),
+        subdir = "QC",
         width = 12, height = 16
       )
     }
 
     # Guardar tabla consolidada de outliers
-    write.xlsx(all_outliers, paste0(output_path, "tables/PCA_based_outliers.xlsx"))
+    write.xlsx(all_outliers, file.path(output_path, "tables", paste0("PCA_based_outliers.xlsx")))
     # Save results
-    write.xlsx(results, paste0(output_path, "tables/PCA_detailed_outlier_results.xlsx"))
+    write.xlsx(results, file.path(output_path, "tables", paste0("PCA_detailed_outlier_results.xlsx")))
     return(list("outlier_summary" = all_outliers, "detailed_results" = results, "combined_plot" = combined_plot))
   }
 
@@ -827,7 +829,7 @@ specifically the impute function description for more information.'
   print(pca_results$outlier_summary)
 
 
-  save(pca_results, file = paste0(output_path, "RData/pca_outliers_results.RData"))
+  save(pca_results, file = file.path(output_path, "RData", paste0("pca_outliers_results.RData")))
 
 
   # Differential Expression — imputation method comparison ####
@@ -890,5 +892,5 @@ specifically the impute function description for more information.'
 
   print(dep_imputed_prots)
   dep_imputed_prots %>%
-    write_xlsx(paste0(output_path, "tables/dep_imputed_prots_", name_df, ".xlsx"))
+    write_xlsx(file.path(output_path, "tables", paste0("dep_imputed_prots_", name_df, ".xlsx")))
 }

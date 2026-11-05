@@ -6,19 +6,19 @@ source("../code/00_packages.R")
 # Load data ####
 
 # Load dep_analysis object
-load(paste0(output_path, "RData/dep_analysis.RData"))
+load(file.path(output_path, "RData", "dep_analysis.RData"))
 # Load data results tables
-data_results <- readxl::read_xlsx(path = paste0(output_path, "tables/data_results.xlsx"))
-significant_adjusted_data <- readxl::read_xlsx(path = paste0(output_path, "tables/significant_adjusted_data.xlsx"))
-significant_pval_data <- readxl::read_xlsx(path = paste0(output_path, "tables/significant_pval_data.xlsx"))
-significant_qval_data <- readxl::read_xlsx(path = paste0(output_path, "tables/significant_qval_data.xlsx"))
+data_results <- readxl::read_xlsx(path = file.path(output_path, "tables", "data_results.xlsx"))
+significant_adjusted_data <- readxl::read_xlsx(path = file.path(output_path, "tables", "significant_adjusted_data.xlsx"))
+significant_pval_data <- readxl::read_xlsx(path = file.path(output_path, "tables", "significant_pval_data.xlsx"))
+significant_qval_data <- readxl::read_xlsx(path = file.path(output_path, "tables", "significant_qval_data.xlsx"))
 
 
 # Plots ####
 ## PCA plot ####
 p <- plot_pca(dep_analysis, x = 2, y = 1, n = (length(dep_analysis)), point_size = 4)
 save_plot("PCA", p,
-  output_dir = paste0(output_path, "figures"),
+  subdir = "QC",
   width = 8, height = 6
 )
 
@@ -45,7 +45,7 @@ pca_loadings <- autoplot(pca_res,
   loadings.label = TRUE, loadings.label.size = 3, frame = FALSE, frame.type = "norm"
 )
 save_plot("PCA_loadings_p_adj", pca_loadings,
-  output_dir = paste0(output_path, "figures"),
+  subdir = "QC",
   width = 8, height = 6
 )
 
@@ -57,7 +57,7 @@ pca_loadings <- autoplot(pca_res,
   loadings.label = TRUE, loadings.label.size = 3, frame = FALSE, frame.type = "norm"
 )
 save_plot("PCA_loadings_p_value", pca_loadings,
-  output_dir = paste0(output_path, "figures"),
+  subdir = "QC",
   width = 8, height = 6
 )
 
@@ -66,7 +66,7 @@ save_plot("PCA_loadings_p_value", pca_loadings,
 
 # Plot the Pearson correlation matrix
 # Step 1: Call the pdf command to start the plot
-filename <- paste0(output_path, "figures/", sprintf("%03d", image_number), "_Correlation_matrix") # Name of output file.
+filename <- paste0(output_path, "/", "figures/", sprintf("%03d", image_number), "_Correlation_matrix") # Name of output file.
 pdf(file = paste0(filename, pdf_extension)) # The height of the plot in inches
 p <- DEP::plot_cor(dep_analysis, significant = TRUE, lower = 0, upper = 1, pal = "Reds")
 print(p)
@@ -77,7 +77,7 @@ dev.off()
 # Incrementar contador global
 assign("image_number", image_number + 1, envir = .GlobalEnv)
 ### HeatMap ####
-filename <- paste0(output_path, "figures/", sprintf("%03d", image_number), "_Heatmap_significant") # Name of output file.
+filename <- paste0(output_path, "/", "figures/", sprintf("%03d", image_number), "_Heatmap_significant") # Name of output file.
 pdf(file = paste0(filename, pdf_extension))
 p <- DEP::plot_heatmap(dep_analysis,
   type = "centered", kmeans = TRUE,
@@ -99,7 +99,7 @@ for (i in 1:length(comparisons)) {
   vulcano <- plot_volcano(dep_analysis, contrast = comparisons[i], label_size = 3, add_names = TRUE, adjusted = FALSE)
   filename <- paste0("vulcano_DEP_", comparisons[i]) # Output file name (you can change the extension to match the desired format)
   save_plot(filename, vulcano,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 6
   )
 }
@@ -147,7 +147,7 @@ for (i in 1:length(comparisons)) {
 
   filename <- paste0("vulcano_ggplot_", comparisons[i]) # Output file name (you can change the extension to match the desired format)
   save_plot(filename, vulcanogg,
-    output_dir = paste0(output_path, "figures"),
+    subdir = "QC",
     width = 8, height = 6
   )
 }
@@ -169,7 +169,7 @@ if (print_barplots) {
     group <- expressed[start:end]
     singleplot <- plot_single(dep_analysis, proteins = group, type = "centered") #+ ggtitle(comparisons[i])
     save_plot("enriched_protein_barplot", p,
-      output_dir = paste0(output_path, "figures"),
+      subdir = "QC",
       width = 8, height = 6
     )
   }
@@ -188,7 +188,7 @@ if (print_barplots) {
     singleplot <- plot_single(dep_analysis, proteins = group, type = "centered") #+ ggtitle(comparisons[i])
     p <- print(singleplot)
     save_plot("enriched_protein_barplot_p_value", p,
-      output_dir = paste0(output_path, "figures"),
+      subdir = "QC",
       width = 8, height = 6
     )
   }
@@ -219,7 +219,7 @@ if (length(comparisons) == 1) {
 
     # Save plot
     save_plot("FC_correlation", p,
-      output_dir = paste0(output_path, "figures"),
+      subdir = "QC",
       width = 8, height = 6
     )
   }
@@ -262,7 +262,7 @@ heatmap_adj <- pheatmap::pheatmap(heatmap_matrix_padj,
   display_numbers = TRUE
 )
 save_plot("HeatMap_padj", heatmap_adj,
-  output_dir = paste0(output_path, "figures"),
+  subdir = "QC",
   width = 4, height = 18
 )
 
@@ -298,7 +298,7 @@ heatmap_pval <- pheatmap::pheatmap(heatmap_matrix,
 )
 
 save_plot("HeatMap_ratio", heatmap_pval,
-  output_dir = paste0(output_path, "figures"),
+  subdir = "QC",
   width = 4, height = 18
 )
 
@@ -332,7 +332,7 @@ selected_ratio <- data_results %>%
   dplyr::filter(name %in% row_names_ratio)
 
 selected_ratio %>%
-  write_xlsx(paste0(output_path, "tables/selected_ratio.xlsx"))
+  write_xlsx(file.path(output_path, "tables", "selected_ratio.xlsx"))
 
 
 # Remove Cluster Column
@@ -355,7 +355,7 @@ heatmap_pval <- pheatmap::pheatmap(heatmap_matrix_exclude,
 )
 
 save_plot("HeatMap_ratio_excluded", heatmap_pval,
-  output_dir = paste0(output_path, "figures"),
+  subdir = "QC",
   width = 4, height = 18
 )
 
@@ -375,7 +375,7 @@ rownames(heatmap_matrix_intensity) <- heatmap_intensity$name
 # Define custom color palette
 my_color_palette <- colorRampPalette(viridis(12))(100) # define your color scale
 
-
+label_columns <- colnames(heatmap_matrix_intensity) # Get the column names for labeling)
 # Plot heatmap with specific order of cluster names on x-axis
 heatmap_int <- pheatmap::pheatmap(heatmap_matrix_intensity,
   cutree_rows = 4,
@@ -395,7 +395,7 @@ heatmap_int <- pheatmap::pheatmap(heatmap_matrix_intensity,
 )
 
 save_plot("HeatMap_intensity_padj", heatmap_int,
-  output_dir = paste0(output_path, "figures"),
+  subdir = "QC",
   width = 4, height = 18
 )
 
@@ -432,7 +432,7 @@ heatmap_int <- pheatmap::pheatmap(heatmap_matrix_intensity,
 )
 
 save_plot("HeatMap_intensity", heatmap_int,
-  output_dir = paste0(output_path, "figures"),
+  subdir = "QC",
   width = 6, height = 18
 )
 
@@ -466,7 +466,7 @@ selected_intensity <- data_results %>%
   dplyr::filter(name %in% row_names)
 
 selected_intensity %>%
-  write_xlsx(paste0(output_path, "tables/selected_intensity.xlsx"))
+  write_xlsx(file.path(output_path, "tables", "selected_intensity.xlsx"))
 
 # Remove Cluster Column
 cluster_col_index <- which(colnames(heatmap_matrix_exclude_int_2) == "Cluster")
@@ -494,6 +494,6 @@ heatmap_int <- pheatmap::pheatmap(heatmap_matrix_exclude_int_2,
 )
 
 save_plot("HeatMap_intensity_excluded", heatmap_int,
-  output_dir = paste0(output_path, "figures"),
+  subdir = "QC",
   width = 6, height = 10
 )

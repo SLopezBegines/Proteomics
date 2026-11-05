@@ -39,7 +39,7 @@ libraries <- c(
 libraries_bioconductor <- c(
   "biomaRt", "org.Dr.eg.db", "org.Mm.eg.db", "org.Hs.eg.db", "clusterProfiler", "enrichplot", "tidySummarizedExperiment",
   "DEP", "AnnotationDbi", "topGO", "STRINGdb", "AnnotationHub", "rrvgo",
-  "europepmc", "Rgraphviz", "pathview", "limma", "ComplexHeatmap", "DOSE", "viridis", "edgeR", "vsn"
+  "europepmc", "Rgraphviz", "pathview", "limma", "ComplexHeatmap", "DOSE", "viridis", "edgeR", "vsn", "qvalue"
 )
 
 install_and_load_library(libraries)

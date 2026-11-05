@@ -111,7 +111,7 @@ argument test.'
 
     # qvalue() requires all p-values; NA causes failure
     valid <- !is.na(pvals)
-    q_out <- qvalue(pvals[valid])
+    q_out <- qvalue::qvalue(pvals[valid])
 
     data_results[[qval_col]] <- NA_real_
     data_results[[qval_col]][valid] <- q_out$qvalues
@@ -274,7 +274,7 @@ argument test.'
     assign(new_df_name, as.data.frame(diff), envir = .GlobalEnv)
 
     diff %>%
-      write_xlsx(paste0(output_path, "tables/", new_df_name, ".xlsx"))
+      write_xlsx(file.path(output_path, "tables", paste0(new_df_name, ".xlsx")))
   }
 
   ## p-value distribution plot ####
@@ -338,7 +338,7 @@ argument test.'
   adjusted_plot <- pval_plot / p.adj_plot / qval_plot / holm_plot
 
   save_plot("pq_value_distibution", adjusted_plot,
-    output_dir = paste0(output_path, "figures")
+    subdir = "DE"
   )
 
   # Number of significant proteins by pval/adj.pval/qval ####
@@ -361,31 +361,31 @@ argument test.'
     c(n_significant_pval, n_significant_adjp, n_significant_qval, n_significant_holmval)
   )
   colnames(n_significant) <- c("N significant proteins by", "Number of proteins")
-  n_significant |>    write_xlsx(paste0(output_path, "tables/number_significant_proteins_by p-value.xlsx"))
+  n_significant |> write_xlsx(file.path(output_path, "tables", "number_significant_proteins_by_p-value.xlsx"))
   print(n_significant)
 
-# Export results ####
+  # Export results ####
   significant_adjusted_data <- data_results %>% filter(significant)
   significant_pval_data <- data_results %>% filter(significance_pval)
   significant_qval_data <- data_results %>% filter(significance_qval)
   significant_holmval_data <- data_results %>% filter(significance_holmval)
 
-  save(dep_analysis, file = paste0(output_path, "RData/dep_analysis.RData"))
+  save(dep_analysis, file = file.path(output_path, "RData", "dep_analysis.RData"))
   # All data
   data_results %>%
-    write_xlsx(paste0(output_path, "tables/data_results.xlsx"))
+    write_xlsx(file.path(output_path, "tables", "data_results.xlsx"))
   # Significant by p.adj
   significant_adjusted_data %>%
-    write_xlsx(paste0(output_path, "tables/significant_adjusted_data.xlsx"))
+    write_xlsx(file.path(output_path, "tables", "significant_adjusted_data.xlsx"))
   # Significatn by p.val
   significant_pval_data %>%
-    write_xlsx(paste0(output_path, "tables/significant_pval_data.xlsx"))
+    write_xlsx(file.path(output_path, "tables", "significant_pval_data.xlsx"))
   # Significant by q.val
   significant_qval_data %>%
-    write_xlsx(paste0(output_path, "tables/significant_qval_data.xlsx"))
+    write_xlsx(file.path(output_path, "tables", "significant_qval_data.xlsx"))
   # Significant by holm p.val
   significant_holmval_data %>%
-    write_xlsx(paste0(output_path, "tables/significant_holmval_data.xlsx"))
+    write_xlsx(file.path(output_path, "tables", "significant_holmval_data.xlsx"))
 
   # Dynamically assign the data frame to the global environment
   assign("data_results", data_results, envir = .GlobalEnv)
