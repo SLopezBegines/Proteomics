@@ -1,0 +1,29 @@
+# Never send data, results or local state to the build context
+rawdata/
+output/
+mains/output/
+input_data/
+renv/
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.Rprofile
+*.Rproj
+.git/
+.gitignore
+.positai
+CLAUDE.md
+prompt_docker_nextflow.txt
+Retomar_Netflow_Docker.txt
+# Pipeline outputs / Nextflow state
+results/
+work/
+.nextflow*
+# Docs and big binaries are not needed in the image
+docs/
+LICENSE
+README.md
+*.xlsx
+*.pdf
+*.tiff
