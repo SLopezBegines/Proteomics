@@ -1,5 +1,13 @@
 # load libraries ####
 # install.packages("renv")
+# 
+# 
+# 
+# renv::settings$snapshot.type("all")
+# renv::snapshot(lockfile = "renv-R453.lock")
+# options(repos = c(CRAN = "https://p3m.dev/cran/2026-06-30"))
+# renv::snapshot(type = "all", lockfile = "renv-R453.lock")
+
 # Function to load libraries from CRAN
 install_and_load_library <- function(lib_names) {
   missing_libs <- lib_names[!sapply(lib_names, requireNamespace, quietly = TRUE)]
