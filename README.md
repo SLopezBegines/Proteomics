@@ -9,6 +9,122 @@
 
 A modular and reproducible R pipeline for label-free quantitative (LFQ) proteomics data analysis. Designed to process MaxQuant output from Orbitrap and Q-Exactive mass spectrometers, covering the complete workflow from raw protein groups to functional enrichment.
 
+## Docker + Nextflow (reproducible run)
+
+This branch (`docker-nextflow`) wraps the DEP pipeline in a container image (R 4.5.3, Bioconductor 3.22, DEP 1.32.0, Quarto 1.11.9) and a Nextflow DSL2 workflow, so that the analysis runs the same way on a laptop with Docker and, with Singularity, on an HPC cluster. The R functions in `code/` are used unchanged; the scripts in `bin/` set up the same global environment as `mains/*.Rmd` and call them.
+
+```mermaid
+flowchart LR
+    I["proteinGroups<br/>+ design.csv"] --> V[VALIDATE_INPUTS]
+    V --> P["PREPROCESS_QC<br/>filter · vsn · imputation"]
+    P --> D["DIFFERENTIAL_DEP<br/>limma contrasts"]
+    D --> G["PLOTS<br/>PCA · volcano · heatmaps · stats"]
+    V --> S[SOFTWARE_VERSIONS]
+    P --> S
+    D --> S
+    G --> S
+```
+
+### Requirements
+
+| | Tested with | Notes |
+|---|---|---|
+| Docker | 29.9.2 | ~6 GB for the image |
+| Nextflow | 26.10.5 | needs Java 17–25 (tested with OpenJDK 25) |
+| RAM | 14 GB host | the test needs ~2 GB per task |
+| Singularity/Apptainer | not tested | only for the `singularity` / `slurm` profiles |
+
+R does not need to be installed on the host.
+
+> **Work directory:** Nextflow stages task inputs as symbolic links. Run it with `-w` pointing to a filesystem that supports them (ext4, xfs, ...). On exFAT/NTFS/FAT volumes the first task fails with `ln: failed to create symbolic link`.
+
+### 1. Build the image
+
+```bash
+docker build -f docker/Dockerfile -t proteomics-dep:r4.5.3-bioc3.22 .
+```
+
+The first build takes about 40 minutes on 4 cores (restoring ~390 packages, compiling `mzR`). Later builds that only change `code/` reuse the package layer. The build fails unless R is 4.5.3, Bioconductor is 3.22 and `DEP` 1.32.0 loads. Check it manually with:
+
+```bash
+docker run --rm proteomics-dep:r4.5.3-bioc3.22 Rscript -e 'library(DEP); sessionInfo()'
+```
+
+What is pinned: base image `rocker/r-ver:4.5.3` by digest, CRAN through the dated Posit Package Manager snapshot `2026-06-30`, every package version through `renv.lock`, and the Quarto download by SHA-256. Bioconductor 3.22 is a frozen release but is not date-snapshotted.
+
+### 2. Run the test profile
+
+The test uses a 600-protein subset of the CLN3 interactome ProteinGroups table (PXD031582, 12 LFQ samples, conditions CTRL / KO / WT). **No data are versioned in this repository.** Put the full table at `rawdata/ProteinGroups_Project_PXD031582.xlsx` and build the subset:
+
+```bash
+docker run --rm -u $(id -u):$(id -g) -v "$PWD":/w -w /w proteomics-dep:r4.5.3-bioc3.22 \
+    Rscript --vanilla bin/make_test_data.R
+nextflow run . -profile test -w ~/nf-work/proteomics-dep
+nextflow run . -profile test -w ~/nf-work/proteomics-dep -resume    # all tasks cached
+```
+
+Reference run (4 cores, 14 GB RAM): 5 tasks in 193 s; the `-resume` run reports `cached=5` and takes 8 s.
+
+### 3. Run on your own data
+
+```bash
+nextflow run . -w ~/nf-work/proteomics-dep \
+    --protein_groups path/to/proteinGroups.txt \
+    --design path/to/design.csv \
+    --contrasts "KO_vs_CTRL,WT_vs_CTRL" \
+    --organism human --dataset my_project
+```
+
+`design.csv` has one row per sample: `label` (exact column name in the protein table, e.g. `LFQ intensity CTRL_01`), `condition`, `replicate`, and optionally `batch`. See `assets/design_PXD031582.csv`. The input can be a pre-processed `.xlsx`/`.csv`/`.tsv` with `accession`, `genename` and `Description` columns (this is the format of the test data and the only one exercised so far), or a raw MaxQuant `proteinGroups.txt`. Raw MaxQuant support (column mapping, removal of contaminant/reverse/site-only hits) is implemented in `bin/pipeline_common.R` but has **not been tested on a real file**.
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `--protein_groups` | required | protein table (`.txt`, `.tsv`, `.csv`, `.xlsx`) |
+| `--design` | required | design CSV (see above) |
+| `--contrasts` | all pairwise | comma-separated `A_vs_B` list |
+| `--organism` | `human` | `human`, `mouse` or `zebrafish` |
+| `--fraction_na` | `0.6` | maximum fraction of missing values per condition |
+| `--mnar_var` | `zero` | MNAR imputation: `zero`, `MinProb`, `QRILC` |
+| `--factor_sd_impute`, `--factor_sd_scale` | `0.05`, `0.3` | imputation distribution width / scale |
+| `--adjusted_method` | `BH` | multiple-testing method |
+| `--p_val`, `--p_val_low` | `0.05`, `0.01` | significance thresholds |
+| `--fc` | `0.5` | minimum absolute log2 fold change |
+| `--barplots` | `false` | per-protein barplots (slow) |
+| `--outdir` | `results` | output root |
+| `--container` | `proteomics-dep:r4.5.3-bioc3.22` | image tag, registry URL or `.sif` path |
+
+Parameters are validated before any container starts; all problems are reported together (missing files, unknown organism, out-of-range thresholds, malformed contrasts, design labels that are not columns of the table, conditions with fewer than 2 replicates).
+
+### Profiles
+
+| Profile | Status |
+|---|---|
+| `docker` (default) | tested |
+| `test` | tested |
+| `singularity` | **not tested** (no Singularity available) |
+| `slurm` | **template only, not tested** (`conf/slurm.config`; set queue/account, use with `-profile singularity,slurm --container x.sif`) |
+
+### Outputs
+
+```
+results/<dataset>/
+├── tables/           data_results.xlsx, significant_{pval,qval,adjusted,holmval}_data.xlsx,
+│                     all_proteomic_stats.xlsx, imputation and outlier summaries
+├── figures/QC/       overlap, coverage, normalisation, imputation, PCA, heatmaps (TIFF + PDF)
+├── figures/DE/       differential-expression figures
+├── RData/            intermediate objects (filtered, normalised, imputed, dep_analysis)
+└── pipeline_info/    software_versions.yml, execution_{report,timeline}.html, execution_trace.tsv
+```
+
+### Known limitations
+
+- **Functional enrichment is not part of the workflow yet.** Scripts `06`–`17` in `code/` are out of sync with the current `save_plot(subdir = )` signature and with the `<contrast>_diffexpressed_{qval,pval,...}` column names written by `04`, so the GO/KEGG/STRING/PANTHER steps, the Venn diagrams and the summary figure of `17` fail. In addition, `clusterProfiler::enrichGO(keyType = "UNIPROT")` exceeded 8 GB of RAM in this image (with `ENTREZID` it peaked at 2.2 GB).
+- **DEP is deprecated:** it is removed from Bioconductor 3.23 and does not install on R ≥ 4.6, which is why this branch is pinned to R 4.5.3.
+- The `singularity` and `slurm` profiles have never been run.
+- Raw MaxQuant `proteinGroups.txt` input is untested (see above).
+- The test subset is derived from a local `.xlsx` and cannot be downloaded automatically.
+- The image is `linux/amd64` tested only (the Quarto layer also supports `arm64`, untested).
+
 ## Pipeline Overview
 
 ```mermaid
@@ -77,6 +193,13 @@ Proteomics/
 ├── mains/                  # RMarkdown entry points (one per dataset)
 │   └── IP-CLN3_PXD031582.Rmd     # CLN3 interactome analysis (mouse)
 │
+├── main.nf, nextflow.config  # Nextflow DSL2 workflow and default parameters
+├── conf/                   # Resource labels, test and SLURM profiles
+├── modules/local/          # One Nextflow module per process
+├── bin/                    # R stage scripts that wrap code/ (no changes to code/)
+├── assets/                 # Example design sheet (PXD031582)
+├── docker/Dockerfile       # R 4.5.3 + Bioconductor 3.22 + DEP image
+├── renv.lock               # Single lockfile (R 4.5.3, Bioconductor 3.22)
 ├── docs/                   # Documentation
 ├── rawdata/                # Input data (not tracked, see below)
 ├── output/                 # Generated results (not tracked)
