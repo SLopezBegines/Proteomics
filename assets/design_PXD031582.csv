@@ -1,0 +1,13 @@
+label,condition,replicate,batch
+LFQ intensity CTRL_01,CTRL,1,1
+LFQ intensity CTRL_02,CTRL,2,1
+LFQ intensity CTRL_03,CTRL,3,1
+LFQ intensity CTRL_04,CTRL,4,1
+LFQ intensity TMEM_CLN3_KO_01,KO,1,1
+LFQ intensity TMEM_CLN3_KO_02,KO,2,1
+LFQ intensity TMEM_CLN3_KO_03,KO,3,1
+LFQ intensity TMEM_CLN3_KO_04,KO,4,1
+LFQ intensity TMEM_CLN3_WT_01,WT,1,1
+LFQ intensity TMEM_CLN3_WT_02,WT,2,1
+LFQ intensity TMEM_CLN3_WT_03,WT,3,1
+LFQ intensity TMEM_CLN3_WT_04,WT,4,1

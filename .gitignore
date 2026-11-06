@@ -20,3 +20,9 @@ rbioapi
 
 CLAUDE.md
 
+
+# Nextflow / pipeline outputs and generated test data
+testdata/
+results/
+work/
+.nextflow*
