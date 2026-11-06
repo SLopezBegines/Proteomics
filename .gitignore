@@ -21,3 +21,6 @@ rbioapi
 CLAUDE.md
 
 mains/blood_cell_human_mouse.Rmd
+
+# Local-only analysis, not published
+mains/skin_colon_joan.Rmd
