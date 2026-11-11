@@ -24,3 +24,6 @@ mains/blood_cell_human_mouse.Rmd
 
 # Local-only analysis, not published
 mains/skin_colon_joan.Rmd
+
+# Large supplementary file, kept locally only
+docs/final_supplement_bbaf201.docx
