@@ -8,6 +8,9 @@ source("../code/00_packages.R")
 # Runs clusterProfiler::enrichGO() on UP/DOWN/UPDOWN gene sets for each
 # comparison. Uses `data_results` from the global environment if available,
 # otherwise loads it from `output_path`.
+# Organism OrgDb, keyType and output path default to the `params` list
+# (params$organism, params$keyType, params$output_path); the arguments only
+# need to be passed to override them.
 
 run_GO_enrichment <- function(data_results = NULL,
                               comparisons,
@@ -15,16 +18,16 @@ run_GO_enrichment <- function(data_results = NULL,
                               independent_UPDOWN = TRUE,
                               diffexpressed_type = c("qval", "pval", "padj_holm_pval"),
                               ont = "ALL",
-                              organism,
-                              output_path,
-                              keyType = "UNIPROT",
+                              organism = params$organism,
+                              output_path = params$output_path,
+                              keyType = params$keyType,
                               pAdjustMethod = "none") {
   # Use data_results from the global environment if available, otherwise load it
   if (is.null(data_results)) {
     if (exists("data_results", envir = .GlobalEnv)) {
       data_results <- get("data_results", envir = .GlobalEnv)
     } else {
-      data_results <- readxl::read_xlsx(path = paste0(output_path, "tables/data_results.xlsx"))
+      data_results <- readxl::read_xlsx(path = file.path(output_path, "tables", "data_results.xlsx"))
     }
   }
 
@@ -39,6 +42,9 @@ run_GO_enrichment <- function(data_results = NULL,
     diffexpressed_type = diffexpressed_type
   )
 
+  # Protein groups are stored as "ACC1;ACC2": enrichGO needs one ID per gene
+  gene_sets <- lapply(gene_sets, function(x) unique(unlist(strsplit(as.character(x), ";", fixed = TRUE))))
+
   # Run enrichGO for each gene set
   perform_enrichGO <- function(gene_set) {
     clusterProfiler::enrichGO(
@@ -47,13 +53,14 @@ run_GO_enrichment <- function(data_results = NULL,
       keyType = keyType,
       ont = ont,
       pAdjustMethod = pAdjustMethod,
-      readable = TRUE
+      readable = TRUE,
+      qvalueCutoff = 0.01
     )
   }
 
   results_list_GO <- lapply(gene_sets, perform_enrichGO)
 
-  save(results_list_GO, file = paste0(output_path, "RData/results_list_enrichGO_", ont, ".RData"))
+  save(results_list_GO, file = file.path(output_path, "RData", paste0("results_list_enrichGO_", ont, ".RData")))
 
   return(results_list_GO)
 }
@@ -66,7 +73,7 @@ run_GO_enrichment <- function(data_results = NULL,
 plot_GO_results <- function(results_list_GO,
                             direction = c("UP", "DOWN"),
                             ont = "ALL",
-                            output_path,
+                            output_path = params$output_path,
                             output_dir = "enrichGO",
                             showCategory = 30,
                             top_n_terms = 15,
@@ -80,7 +87,7 @@ plot_GO_results <- function(results_list_GO,
   if ("DOWN" %in% direction) patterns <- c(patterns, "_DN(\\.|$)", "_UPDOWN(\\.|$)")
   results_list_GO <- results_list_GO[grepl(paste(unique(patterns), collapse = "|"), names(results_list_GO))]
 
-  fig_dir <- file.path(output_path, "figures", output_dir)
+  # Figures are written by save_plot() to params$output_path/figures/<output_dir>
 
   ### Plot functions ####
 
@@ -161,7 +168,7 @@ plot_GO_results <- function(results_list_GO,
         ggplot2::ggtitle(paste0("Bar plot for ", plot_name))
       save_plot(paste0("barplot_", plot_name_hyphen),
         p,
-        output_dir = fig_dir,
+        subdir = output_dir,
         width = width,
         height = height
       )
@@ -181,7 +188,7 @@ plot_GO_results <- function(results_list_GO,
         ggplot2::ggtitle(paste0("Dot plot for ", plot_name))
       save_plot(paste0("dotplot_", plot_name_hyphen),
         p,
-        output_dir = fig_dir,
+        subdir = output_dir,
         width = width,
         height = height
       )
@@ -201,7 +208,7 @@ plot_GO_results <- function(results_list_GO,
         ggplot2::ggtitle(paste0("CNET plot for ", plot_name))
       save_plot(paste0("cnet_plot_", plot_name_hyphen),
         p,
-        output_dir = fig_dir,
+        subdir = output_dir,
         width = width,
         height = height
       )
@@ -222,7 +229,7 @@ plot_GO_results <- function(results_list_GO,
         geom_bar(aes(stat = "identity", width = 0.2))
       save_plot(paste0("upset_", plot_name_hyphen),
         p,
-        output_dir = fig_dir,
+        subdir = output_dir,
         width = width,
         height = height
       )
@@ -242,7 +249,7 @@ plot_GO_results <- function(results_list_GO,
         ggplot2::ggtitle(paste0("HeatMap plot for ", plot_name))
       save_plot(paste0("heatmap_", plot_name_hyphen),
         p,
-        output_dir = fig_dir,
+        subdir = output_dir,
         width = width,
         height = height
       )
@@ -262,7 +269,7 @@ plot_GO_results <- function(results_list_GO,
       p <- p + ggtitle(paste("TreePlot for", plot_name))
       save_plot(paste0("treeplot_", plot_name_hyphen),
         p,
-        output_dir = fig_dir,
+        subdir = output_dir,
         width = width,
         height = height
       )
@@ -275,10 +282,10 @@ plot_GO_results <- function(results_list_GO,
   ## Lolliplots ####
 
   # Retrieve the results data frame list and export it
-  results_df_GO <- map(results_list_GO, ~ .x@result)
+  results_df_GO <- purrr::map(results_list_GO, ~ .x@result) # purrr:: because mixOmics masks map()
 
   results_df_GO %>%
-    write_xlsx(paste0(output_path, "tables/results_df_enrichGO_", ont, ".xlsx"))
+    write_xlsx(file.path(params$output_path, "tables", paste0("results_df_enrichGO_", ont, ".xlsx")))
 
   results_df_GO_ratio <- lapply(results_df_GO, function(df) {
     df %>%
@@ -308,7 +315,7 @@ plot_GO_results <- function(results_list_GO,
 
     plot_name_hyphen <- gsub("\\.ID$", "", gsub("^names_", "", names(df_list)[non_empty_indices[data_name]]))
     plot_name <- gsub("_", " ", plot_name_hyphen)
-
+    top_n_terms <- 15
     plot <- df %>%
       dplyr::mutate(Description = reorder(Description, GeneRatio)) %>%
       top_n(top_n_terms, GeneRatio) %>%
@@ -337,7 +344,7 @@ plot_GO_results <- function(results_list_GO,
 
     save_plot(paste0("lolliplot_", plot_name_hyphen),
       plot,
-      output_dir = fig_dir,
+      subdir = output_dir,
       width = width,
       height = height
     )
