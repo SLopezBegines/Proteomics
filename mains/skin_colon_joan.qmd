@@ -1048,7 +1048,7 @@ string_links <- run_STRING(
   comparisons = comparisons,
   independent_UPDOWN = TRUE,
   diffexpressed_type = "qval", # "qval", "pval", "padj_holm_pval"
-  top_n_FC = NULL # NULL = all DE proteins; e.g. 50 = the 50 with the largest |FC| per set
+  top_n_FC = 100 # NULL = all DE proteins; e.g. 50 = the 50 with the largest |FC| per set
 )
 ```
 
@@ -1076,6 +1076,7 @@ results_list_gseGO <- run_gseGO(
   plots = c("dot", "cnet", "heatmap", "ridge", "pmc", "lolli")
 )
 
+
 results_list_gseKEGG <- run_gseKEGG(
   comparisons = comparisons,
   diffexpressed_type = "qval",
@@ -1097,17 +1098,6 @@ Unlike the STRINGdb package, `rbioapi` queries the REST APIs directly, providing
 ```{r rbioapi-queries, message=FALSE}
 source("../code/10_RBioApi_string.R")
 source("../code/11_RBioApi_panther.R")
-```
-
-# Adjusted p-value Enrichment Analysis
-
-Re-run the functional enrichment analyses (GO ORA, gseGO, gseKEGG) using a stricter significance threshold based on adjusted p-values (`p_val_low = 0.01` from `global_variables.R`).
-This serves as a sensitivity analysis to assess which enriched terms remain significant under more conservative multiple testing correction.
-
-```{r enrichment-adjusted}
-source("../code/13_GO_padj.R")
-source("../code/14_gseKEGG_padj.R")
-source("../code/15_gseGO_adj.R")
 ```
 
 # Venn Diagrams
