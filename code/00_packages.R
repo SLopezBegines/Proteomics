@@ -52,7 +52,7 @@ cran_packages <- c(
   "ggvenn", "ComplexUpset", "RColorBrewer", "patchwork",
   "qvalue", "truncnorm", "broom", "gmp", "mixOmics", "msigdbr", "randomForest",
   "enrichR", "readxl", "rmdformats", "VIM",
-  "viridis", "imputeLCMD", "circlize"
+  "viridis", "imputeLCMD", "circlize", "tictoc"
 )
 load_pkgs(cran_packages)
 # =============================================================================
