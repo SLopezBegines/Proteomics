@@ -1,381 +1,107 @@
-# libraries ####
+# gseGO: GSEA against Gene Ontology ####
 
 source("../code/00_packages.R")
-# source("../code/global_variables.R")
 
-# Load data ####
-# Load dep_analysis object
-load(paste0(output_path, "RData/dep_analysis.RData"))
-# Load data results tables
-data_results <- readxl::read_xlsx(path = paste0(output_path, "tables/data_results.xlsx"))
+#' GSEA on GO terms for the UP / DOWN sets of each comparison
+#'
+#' Ranks each set by fold change and runs clusterProfiler::gseGO(). Results are
+#' saved to RData/ and tables/, plots to figures/gseGO.
+#'
+#' @param data_results       Table from run_de_analysis(); read from `output_path` if NULL.
+#' @param comparisons        Character vector of comparison names.
+#' @param diffexpressed_type "qval", "pval" or "padj_holm_pval".
+#' @param top_n_FC           NULL = all DE proteins; n = the n with the largest |FC| per set.
+#' @param ont                "ALL", "BP", "CC" or "MF".
+#' @param organism           OrgDb package name (params$organism).
+#' @param keyType            Gene ID type of the sets ("UNIPROT").
+#' @param minGSSize,maxGSSize,pvalueCutoff,pAdjustMethod,scoreType Passed to gseGO().
+#' @param plots              Any of "dot", "cnet", "heatmap", "ridge", "pmc", "lolli".
+#' @param showCategory       Terms shown in dot plots.
+#' @param output_path        Project output folder.
+#' @return List of gseaResult objects, one per set.
+run_gseGO <- function(data_results = NULL,
+                      comparisons,
+                      diffexpressed_type = c("qval", "pval", "padj_holm_pval"),
+                      top_n_FC = NULL,
+                      ont = "ALL",
+                      organism = params$organism,
+                      keyType = "UNIPROT",
+                      minGSSize = 3,
+                      maxGSSize = 800,
+                      pvalueCutoff = 0.05,
+                      pAdjustMethod = "none",
+                      scoreType = "pos",
+                      plots = c("dot", "cnet", "heatmap", "ridge", "pmc", "lolli"),
+                      showCategory = 10,
+                      output_path = params$output_path) {
+  diffexpressed_type <- match.arg(diffexpressed_type)
+  plots <- match.arg(plots, c("dot", "cnet", "heatmap", "ridge", "pmc", "lolli"), several.ok = TRUE)
+  if (is.null(data_results)) {
+    data_results <- readxl::read_xlsx(file.path(output_path, "tables", "data_results.xlsx"))
+  }
 
-
-## Generate list of genes ####
-KEGG_input_dataframes <- lapply(comparisons, function(comp) {
-  # Extract 'UP' data
-  name_UP <- paste0("names_", comp, "_UP")
-  df_UP <- data.frame(
-    name = data_results %>% dplyr::filter(get(paste0(comp, "_diffexpressed")) == "UP") %>% pull(name),
-    ID = data_results %>% dplyr::filter(get(paste0(comp, "_diffexpressed")) == "UP") %>% pull(ID),
-    foldchange = data_results %>% dplyr::filter(get(paste0(comp, "_diffexpressed")) == "UP") %>% pull(!!sym(paste0(comp, "_ratio"))),
-    pvalue = data_results %>% dplyr::filter(get(paste0(comp, "_diffexpressed")) == "UP") %>% pull(!!sym(paste0(comp, "_p.val")))
+  sets <- prepare_DE_gene_sets(
+    data_results = data_results, comparisons = comparisons,
+    direction = c("UP", "DOWN"), independent_UPDOWN = TRUE,
+    id_cols = c("name", "ID"), flatten = FALSE,
+    diffexpressed_type = diffexpressed_type, top_n = top_n_FC, keep_stats = TRUE
   )
-  # Extract 'DOWN' data
-  name_DN <- paste0("names_", comp, "_DN")
-  df_DN <- data.frame(
-    name = data_results %>% dplyr::filter(get(paste0(comp, "_diffexpressed")) == "DOWN") %>% pull(name),
-    ID = data_results %>% dplyr::filter(get(paste0(comp, "_diffexpressed")) == "DOWN") %>% pull(ID),
-    foldchange = data_results %>% dplyr::filter(get(paste0(comp, "_diffexpressed")) == "DOWN") %>% pull(!!sym(paste0(comp, "_ratio"))),
-    pvalue = data_results %>% dplyr::filter(get(paste0(comp, "_diffexpressed")) == "DOWN") %>% pull(!!sym(paste0(comp, "_p.val")))
+  gene_lists <- prepare_gse_gene_lists(sets)
+
+  results_list_gseGO <- lapply(gene_lists, function(gl) {
+    clusterProfiler::gseGO(
+      geneList = gl, ont = ont, keyType = keyType, OrgDb = organism,
+      minGSSize = minGSSize, maxGSSize = maxGSSize, pvalueCutoff = pvalueCutoff,
+      pAdjustMethod = pAdjustMethod, scoreType = scoreType, verbose = TRUE
+    )
+  })
+  save(results_list_gseGO, file = file.path(output_path, "RData", paste0("results_list_gseGO_", ont, ".RData")))
+
+  results_df <- purrr::map(results_list_gseGO, ~ .x@result)
+  writexl::write_xlsx(results_df, file.path(output_path, "tables", paste0("results_list_gseGO_", ont, ".xlsx")))
+
+  # One builder per plot type; each returns a ggplot or NULL (no enriched terms)
+  builders <- list(
+    dot = list(label = "Dot plot", file = "GSE_dot", fun = function(x) {
+      enrichplot::dotplot(x, showCategory = showCategory, split = ".sign") +
+        facet_grid(. ~ .sign) + scale_color_viridis()
+    }),
+    cnet = list(label = "CNET plot", file = "GSE_cnet", fun = function(x) {
+      enrichplot::cnetplot(clusterProfiler::simplify(x), foldChange = x@geneList)
+    }),
+    heatmap = list(label = "HeatMap plot", file = "GSE_heatmap", fun = function(x) {
+      enrichplot::heatplot(x, foldChange = x@geneList)
+    }),
+    ridge = list(label = "Ridge plot", file = "GSE_ridge", fun = function(x) {
+      enrichplot::ridgeplot(x) + scale_fill_viridis()
+    }),
+    pmc = list(label = "PMC plot", file = "GSE_PMC", fun = function(x) {
+      # Number of PubMed articles mentioning the top 3 term descriptions
+      enrichplot::pmcplot(x@result$Description[1:3], 2010:2026, proportion = FALSE)
+    })
   )
-  # Assign names to data frames
-  setNames(list(df_UP, df_DN), c(name_UP, name_DN))
-})
 
-KEGG_input_dataframes <- unlist(KEGG_input_dataframes, recursive = FALSE) # Keep it for StringDB
-
-
-# Define a function to process each element in the KEGG_input_dataframes list
-process_gene_list <- function(df) {
-  # Extract foldchange and ID columns
-  original_gene_list <- df$foldchange
-  names(original_gene_list) <- df$ID
-
-  # Remove NA values
-  gene_list <- na.omit(original_gene_list)
-
-  # Sort the gene_list in decreasing order
-  gene_list <- sort(gene_list, decreasing = TRUE)
-
-  return(gene_list)
-}
-# Apply the function to each element in the KEGG_input_dataframes list
-GSE_gene_lists <- lapply(KEGG_input_dataframes, process_gene_list)
-
-# gse pathway ####
-## gseGO function ####
-# Function to gseGO for the dataframes of a list
-perform_gseGO <- function(gene_set, type = "ALL") {
-  results <- clusterProfiler::gseGO(
-    geneList = gene_set,
-    ont = type,
-    keyType = "UNIPROT",
-    # nPerm = 10000,
-    minGSSize = 3,
-    maxGSSize = 800,
-    pvalueCutoff = 0.05,
-    verbose = TRUE,
-    scoreType = "pos",
-    OrgDb = organism,
-    pAdjustMethod = "none"
-  )
-  return(results)
-}
-
-
-# Apply the gseGO function to each gene set in differential_genes
-results_list_gseGO_ALL <- lapply(GSE_gene_lists, perform_gseGO)
-
-save(results_list_gseGO_ALL, file = paste0(output_path, "RData/results_list_gseGO_ALL.RData"))
-
-# load results_list_go_ALL RData file
-load(paste0(output_path, "RData/results_list_gseGO_ALL.RData"))
-
-
-results_df_gseGO_ALL <- map(results_list_gseGO_ALL, ~ .x@result)
-
-results_df_gseGO_ALL %>%
-  write_xlsx(paste0(output_path, "tables/", "results_list_gseGO_ALL.xlsx"))
-
-
-## Plots ####
-
-# GO Dotplots function
-perform_dotplots <- function(x) {
-  if (nrow(x@result) == 0) { # Check if x[result][Count] is empty
-    cat("No elements found for dataframe.\n")
-    return(NULL)
-  } else {
-    # results <- enrichplot::dotplot(x, showCategory = 30, split=".sign") + facet_grid(ONTOLOGY ~ ., scale = "free")+ scale_color_viridis()
-    results <- enrichplot::dotplot(x, showCategory = 10, split = ".sign") +
-      facet_grid(. ~ .sign) +
-      scale_color_viridis()
-    # results <- enrichplot::dotplot(x, showCategory = 30)
-    return(results)
-  }
-}
-
-# GO cnetplots function
-
-perform_cnetplots <- function(x) {
-  if (nrow(x@result) == 0) {
-    message("Skipping heatmap: No enriched terms found.")
-    return(NULL)
-  }
-  ## remove redundent GO terms
-  x2 <- simplify(x)
-  # results <- enrichplot::cnetplot(x2)
-  # For circular Gene Concept map
-  # results <- enrichplot::cnetplot(x2, circular = TRUE, colorEdge = TRUE)
-  results <- enrichplot::cnetplot(x2, foldChange = x@geneList)
-  return(results)
-}
-
-# HeatMap plot function
-perform_heatmapplot <- function(x) {
-  if (nrow(x@result) == 0) { # Check if x[result][Count] is empty
-    cat("No elements found for dataframe.\n")
-    return(NULL)
-  } else {
-    results <- enrichplot::heatplot(x, foldChange = x@geneList)
-    return(results)
-  }
-}
-# RidgePlots
-perform_ridgeplots <- function(x) {
-  if (nrow(x@result) == 0) { # Check if x[result][Count] is empty
-    cat("No elements found for dataframe.\n")
-    return(NULL)
-  } else {
-    # results <- enrichplot::dotplot(x, showCategory = 30, split=".sign") + facet_grid(ONTOLOGY ~ ., scale = "free")+ scale_color_viridis()
-    results <- enrichplot::ridgeplot(x) +
-      scale_fill_viridis()
-    # results <- enrichplot::dotplot(x, showCategory = 30)
-    return(results)
-  }
-}
-# PMCPlots
-perform_pmcplots <- function(x) {
-  if (nrow(x@result) == 0) { # Check if x[result][Count] is empty
-    cat("No elements found for dataframe.\n")
-    return(NULL)
-  } else {
-    # results <- enrichplot::dotplot(x, showCategory = 30, split=".sign") + facet_grid(ONTOLOGY ~ ., scale = "free")+ scale_color_viridis()
-    terms <- x@result$Description[1:3]
-    results <- enrichplot::pmcplot(terms, 2010:2026, proportion = FALSE)
-    # results <- enrichplot::dotplot(x, showCategory = 30)
-    return(results)
-  }
-}
-
-# image_number = 100
-
-### Dotplot ####
-
-dotplot_results <- lapply(results_list_gseGO_ALL, perform_dotplots)
-# Iterate over dotplot_results and print each plot individually
-for (i in seq_along(dotplot_results)) {
-  if (is.null(dotplot_results[[i]])) {
-    cat("Plot not generated for element ", i, ".\n")
-  } else {
-    # Extract the desired part of the name
-    plot_name <- gsub("^names_", "", names(results_list_gseGO_ALL)[i]) # Remove "names_"
-    plot_name_hyphen <- gsub("\\.name$", "", plot_name) # Remove ".name"
-    plot_name <- gsub("_", " ", plot_name_hyphen) # Replace "_" with " "
-
-    p <- dotplot_results[[i]] +
-      ggplot2::ggtitle(paste0("Dot plot for ", plot_name))
-    save_plot(paste0("GSE_dot", plot_name_hyphen), 
-              p, 
-              output_dir = file.path(output_path, "figures", "gseGO"), 
-              width = 7, 
-              height = 7)
-    
-
-  }
-}
-
-### CNET plot ####
-
-cnetplot_results <- lapply(results_list_gseGO_ALL, perform_cnetplots)
-
-for (i in seq_along(cnetplot_results)) {
-  if (is.null(cnetplot_results[[i]])) {
-    cat("Plot not generated for element ", i, ".\n")
-  } else {
-    # Extract the desired part of the name
-    plot_name <- gsub("^names_", "", names(results_list_gseGO_ALL)[i]) # Remove "names_"
-    plot_name_hyphen <- gsub("\\.name$", "", plot_name) # Remove ".name"
-    plot_name <- gsub("_", " ", plot_name_hyphen) # Replace "_" with " "
-
-    p <- cnetplot_results[[i]] +
-      ggplot2::ggtitle(paste0("CNET plot for ", plot_name))
-    
-    save_plot(paste0("GSE_cnet", plot_name_hyphen), 
-              p, 
-              output_dir = file.path(output_path, "figures", "gseGO"), 
-              width = 7, 
-              height = 7)
+  for (type in intersect(plots, names(builders))) {
+    b <- builders[[type]]
+    for (nm in names(results_list_gseGO)) {
+      x <- results_list_gseGO[[nm]]
+      if (nrow(x@result) == 0) {
+        message("[gseGO] ", b$label, ": no enriched terms for ", nm)
+        next
+      }
+      tag <- gsub("^names_", "", nm)
+      p <- b$fun(x) + ggplot2::ggtitle(paste0(b$label, " for ", gsub("_", " ", tag)))
+      save_plot(paste0(b$file, "_", tag), p, subdir = "gseGO", width = 7, height = 7)
     }
-}
-
-### Heatmap plot ####
-heatmapplot_results <- lapply(results_list_gseGO_ALL, perform_heatmapplot)
-
-for (i in seq_along(heatmapplot_results)) {
-  if (is.null(heatmapplot_results[[i]])) {
-    cat("Plot not generated for element ", i, ".\n")
-  } else {
-    # Extract the desired part of the name
-    plot_name <- gsub("^names_", "", names(results_list_gseGO_ALL)[i]) # Remove "names_"
-    plot_name_hyphen <- gsub("\\.name$", "", plot_name) # Remove ".name"
-    plot_name <- gsub("_", " ", plot_name_hyphen) # Replace "_" with " "
-
-    p <- heatmapplot_results[[i]] +
-      ggplot2::ggtitle(paste0("HeatMap plot for ", plot_name))
-    save_plot(paste0("GSE_heatmap", plot_name_hyphen), 
-              p, 
-              output_dir = file.path(output_path, "figures", "gseGO"), 
-              width = 7, 
-              height = 7)
-   }
-}
-
-### Ridge plot ####
-ridgeplot_results <- lapply(results_list_gseGO_ALL, perform_ridgeplots)
-
-for (i in seq_along(ridgeplot_results)) {
-  if (is.null(ridgeplot_results[[i]])) {
-    cat("Plot not generated for element ", i, ".\n")
-  } else {
-    # Extract the desired part of the name
-    plot_name <- gsub("^names_", "", names(results_list_gseGO_ALL)[i]) # Remove "names_"
-    plot_name_hyphen <- gsub("\\.name$", "", plot_name) # Remove ".name"
-    plot_name <- gsub("_", " ", plot_name_hyphen) # Replace "_" with " "
-
-    p <- ridgeplot_results[[i]] +
-      ggplot2::ggtitle(paste0("Ridge plot for ", plot_name))
-    save_plot(paste0("GSE_ridge", plot_name_hyphen), 
-              p, 
-              output_dir = file.path(output_path, "figures", "gseGO"), 
-              width = 7, 
-              height = 7)
-  }
-}
-
-
-### PMCplot ####
-# Number of articles in pubmed with the input ges descriptions
-pmcplot_results <- lapply(results_list_gseGO_ALL, perform_pmcplots)
-
-for (i in seq_along(pmcplot_results)) {
-  if (is.null(pmcplot_results[[i]])) {
-    cat("Plot not generated for element", i, ".\n")
-  } else {
-    # Extract the desired part of the name
-    plot_name <- gsub("^names_", "", names(results_list_gseGO_ALL)[i]) # Remove "names_"
-    plot_name_hyphen <- gsub("\\.name$", "", plot_name) # Remove ".name"
-    plot_name <- gsub("_", " ", plot_name_hyphen) # Replace "_" with " "
-
-    p <- pmcplot_results[[i]] +
-      ggplot2::ggtitle(paste0("PMC plot for ", plot_name))
-    save_plot(paste0("GSE_PMC", plot_name_hyphen), 
-              p, 
-              output_dir = file.path(output_path, "figures", "gseGO"), 
-              width = 7, 
-              height = 7)
-  }
-}
-
-
-## Lolliplots ####
-
-# Make dataframe list from GO results #
-results_df_gseGO_ALL <- map(results_list_gseGO_ALL, ~ .x@result)
-
-lolliplot <- function(data_name, df_list, file_prefix = NULL) {
-  non_empty_indices <- which(sapply(df_list, function(x) nrow(x) > 0))
-
-  if (length(non_empty_indices) == 0) {
-    message("All data frames are empty. No plots generated.")
-    return(NULL)
   }
 
-  if (length(non_empty_indices) < data_name) {
-    message("Selected index is out of range. No plot generated.")
-    return(NULL)
+  if ("lolli" %in% plots) {
+    for (nm in names(results_df)) {
+      tag <- gsub("^names_", "", nm)
+      p <- plot_gse_lolliplot(results_df[[nm]], paste("Plot for", gsub("_", " ", tag)), x_label = "GO term")
+      if (!is.null(p)) save_plot(paste0("GO_lolliplot_", tag), p, subdir = "gseGO", width = 7, height = 7)
+    }
   }
 
-  df <- df_list[[non_empty_indices[data_name]]]
-
-  if (nrow(df) == 0) {
-    message("Selected data frame is empty. No plot generated.")
-    return(NULL)
-  }
-
-  plot_name <- gsub("^names_", "", names(df_list)[non_empty_indices[data_name]]) # Remove "names_"
-  plot_name <- gsub("_vs_", " vs ", plot_name) # Replace "_vs_" with " vs "
-  plot_name <- gsub("_", " ", plot_name) # Replace "_" with " "
-  plot_name <- gsub("UP$", "UP", plot_name) # Remove "UP" from the end
-
-  plot <- df %>%
-    dplyr::mutate(Description = reorder(Description, enrichmentScore)) %>%
-    top_n(15, enrichmentScore) %>%
-    ggplot(aes(
-      x = Description,
-      y = enrichmentScore,
-      colour = p.adjust
-    )) +
-    geom_segment(aes(
-      x = Description,
-      xend = Description,
-      y = 0,
-      yend = enrichmentScore
-    )) +
-    geom_point(aes(size = setSize - 1), show.legend = TRUE) +
-    scale_color_viridis_c(option = "viridis", direction = 1) +
-    facet_wrap(ONTOLOGY ~ ., scale = "free_y", ncol = 1) +
-    coord_flip() +
-    theme_minimal() +
-    labs(
-      size = "N. of genes",
-      x = "GO term",
-      y = "enrichmentScore"
-    ) +
-    ggtitle(paste("Plot for", plot_name))
-
-  if (!is.null(file_prefix)) {
-    save_plot(paste0("GO_lolliplot_", plot_name_hyphen), 
-              plot, 
-              output_dir = file.path(output_path, "figures", "gseGO"), 
-              width = 7, 
-              height = 7)
-  }
-  return(plot)
+  invisible(results_list_gseGO)
 }
-
-# Apply lolliplot function
-for (i in seq_along(results_df_gseGO_ALL)) {
-  lolliplot_result <- lolliplot(i, results_df_gseGO_ALL, file_prefix = paste0(output_path, "figures/gseGO/"))
-}
-
-
-'
-# BP ####
-# Apply the enrichGO function to each gene set in differential_genes
-results_list_gseGO_BP <- lapply(GSE_gene_lists, perform_gseGO, type= "BP")
-#Save results
-save(results_list_gseGO_BP, file = paste0(output_path,"RData/results_list_gseGO_BP.RData"))
-
-
-# load results_list_go_BP RData file
-load(paste0(output_path,"RData/results_list_gseGO_BP.RData"))
-
-# CC ####
-# Apply the enrichGO function to each gene set in differential_genes
-results_list_gseGO_CC <- lapply(GSE_gene_lists, perform_gseGO, type= "CC")
-#Save results
-save(results_list_gseGO_CC, file = paste0(output_path,"RData/results_list_gseGO_CC.RData"))
-
-# load results_list_go_CC RData file
-load(paste0(output_path,"RData/results_list_gseGO_CC.RData"))
-# MF ####
-# Apply the enrichGO function to each gene set in differential_genes
-results_list_gseGO_MF <- lapply(GSE_gene_lists, perform_gseGO, type= "MF")
-#Save results
-save(results_list_gseGO_MF, file = paste0(output_path,"RData/results_list_gseGO_MF.RData"))
-
-# load results_list_go_MF RData file
-load(paste0(output_path,"RData/results_list_gseGO_MF.RData"))
-
-'

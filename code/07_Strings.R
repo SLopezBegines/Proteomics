@@ -1,89 +1,70 @@
-
-
-
-
-# libraries ####
+# STRING protein-protein interaction links ####
+# Builds the UP / DOWN protein sets of each comparison from `data_results` and
+# queries STRING for one network link per set.
 
 source("../code/00_packages.R")
-#source("../code/global_variables.R")
 
-# Load data ####
-#Load dep_analysis object
-load(paste0(output_path,"RData/dep_analysis.RData"))
-#Load data results tables
-data_results <- readxl::read_xlsx(path = paste0(output_path,"tables/data_results.xlsx"))
+#' STRING network links for the DE protein sets of each comparison
+#'
+#' @param data_results       Table from run_de_analysis(); read from `output_path` if NULL.
+#' @param comparisons        Character vector of comparison names.
+#' @param independent_UPDOWN TRUE: separate UP and DOWN sets; FALSE: one combined set.
+#' @param diffexpressed_type "qval", "pval" or "padj_holm_pval".
+#' @param top_n_FC           NULL = all DE proteins; n = the n with the largest |FC| per set.
+#' @param species            NCBI taxonomy ID (9606 human, 10090 mouse, 7955 zebrafish).
+#' @param output_path        Project output folder (RData/ and tables/ are written there).
+#' @param string_version,score_threshold STRINGdb version and minimum interaction score.
+#' @return Data frame (Name, Link), also written to tables/STRING_plotnames_table.xlsx.
+run_STRING <- function(data_results = NULL,
+                       comparisons,
+                       independent_UPDOWN = TRUE,
+                       diffexpressed_type = c("qval", "pval", "padj_holm_pval"),
+                       top_n_FC = NULL,
+                       species = params$species,
+                       output_path = params$output_path,
+                       string_version = "12.0",
+                       score_threshold = 200) {
+  diffexpressed_type <- match.arg(diffexpressed_type)
+  if (is.null(data_results)) {
+    data_results <- readxl::read_xlsx(file.path(output_path, "tables", "data_results.xlsx"))
+  }
 
-
-# Gene Ontology ####
-# Generate a list with UP and DOWN genes for each comparison
-# Use comparisons vector as input
-
-
-if(independent_UPDOWN == 1){
-  
-  UPDOWN_dataframes <- lapply(comparisons, function(comp) {
-    # Extract 'UP' data
-    name_UP <- paste0("names_", comp, "_UP")
-    df_UP <- data.frame(ID = (data_results %>% dplyr::filter(!!sym(paste0(comp, "_diffexpressed")) == "UP"))$ID)
-    # Extract 'DOWN' data
-    name_DN <- paste0("names_", comp, "_DN")
-    df_DN <- data.frame(ID = (data_results %>% dplyr::filter(!!sym(paste0(comp, "_diffexpressed")) == "DOWN"))$ID)
-    # Assign names to data frames
-    setNames(list(df_UP, df_DN), c(name_UP, name_DN))
+  # One data frame (column `ID`, UniProt accession) per comparison and direction.
+  # Protein groups are stored as "ACC1;ACC2": split them, STRING needs one ID per row.
+  UPDOWN_dataframes_name <- prepare_DE_gene_sets(
+    data_results = data_results,
+    comparisons = comparisons,
+    direction = c("UP", "DOWN"),
+    independent_UPDOWN = independent_UPDOWN,
+    id_cols = "ID",
+    flatten = FALSE,
+    diffexpressed_type = diffexpressed_type,
+    top_n = top_n_FC
+  )
+  UPDOWN_dataframes_name <- lapply(UPDOWN_dataframes_name, function(df) {
+    data.frame(ID = unique(unlist(strsplit(as.character(df$ID), ";", fixed = TRUE))))
   })
-}else{
-  
-  UPDOWN_dataframes <- lapply(comparisons, function(comp) {
-    # Extract 'UP' and 'DOWN' data
-    name_UPDOWN <- paste0("names_", comp, "_UPDOWN")
-    df_UPDOWN <- data.frame(ID = (data_results %>% 
-                                    dplyr::filter(!!sym(paste0(comp, "_diffexpressed")) %in% c("UP", "DOWN")))$ID)
-    # Assign name to data frame
-    setNames(list(df_UPDOWN), name_UPDOWN)
-  })
+
+  # Export sets (file for STRING DB)
+  save(UPDOWN_dataframes_name, file = file.path(output_path, "RData", "UPDOWN_dataframes_name.RData"))
+  writexl::write_xlsx(UPDOWN_dataframes_name, file.path(output_path, "tables", "STRING_dataframes_name.xlsx"))
+
+  string_db <- STRINGdb$new(version = string_version, species = species, score_threshold = score_threshold, input_directory = "")
+
+  # STRING network link of a set of IDs (NA if no ID maps to STRING)
+  string_link <- function(x) {
+    mapped <- string_db$map(x, "ID", removeUnmappedRows = TRUE)
+    if (nrow(mapped) == 0) {
+      return(NA_character_)
+    }
+    as.character(string_db$get_link(mapped$STRING_id))
+  }
+
+  links <- do.call(rbind, lapply(names(UPDOWN_dataframes_name), function(name) {
+    data.frame(Name = name, Link = string_link(UPDOWN_dataframes_name[[name]]), stringsAsFactors = TRUE)
+  }))
+
+  print(links %>% kable("html") %>% kable_styling())
+  writexl::write_xlsx(links, file.path(output_path, "tables", "STRING_plotnames_table.xlsx"))
+  invisible(links)
 }
-
-
-# Flatten the list of lists into a single list
-UPDOWN_dataframes_name <- unlist(UPDOWN_dataframes, recursive = FALSE)# Remove one level in the list
-# Export results ####
-save(UPDOWN_dataframes_name, file = paste0(output_path,"RData/UPDOWN_dataframes_name.RData")) #File for Strings DB
-
-UPDOWN_dataframes_name %>% 
-  write_xlsx(paste0(output_path,"tables/","STRING_dataframes_name.xlsx"))
-# Load data ####
-#Load dep_analysis object
-load(paste0(output_path,"RData/UPDOWN_dataframes_name.RData"))
-
-
-
-# Strings ####
-# load string database
-#9606 for Human, 10090 for mouse, 7955 for zebrafish
-string_db <- STRINGdb$new(version = "11.5", species = species, score_threshold = 200, input_directory="")
-class(string_db)
-
-
-string_function <- function(x) {
-  string_example <- string_db$map(x, "ID", removeUnmappedRows = TRUE)
-  dimension <- dim(string_example)[1]
-  hits <- string_example$STRING_id[1:dimension]
-  link <- as.character(string_db$get_link(hits))
-  return(link)
-}
-
-STRING_plotnames <- lapply(names(UPDOWN_dataframes_name), function(name) {
-  link <- string_function(UPDOWN_dataframes_name[[name]])
-  data.frame(Name = name, Link = link, stringsAsFactors = FALSE)
-})
-
-### Save String plot links ####
-STRING_plotnames_df <- do.call(rbind, STRING_plotnames)
-STRING_plotnames_table <- STRING_plotnames_df %>%
-  kable("html") %>%
-  kable_styling()
-
-print(STRING_plotnames_table)
-
-STRING_plotnames_df %>% 
-  write_xlsx(paste0(output_path,"tables/STRING_plotnames_table.xlsx"))
