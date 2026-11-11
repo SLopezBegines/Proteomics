@@ -61,6 +61,14 @@ as_prone_se <- function(se,
   }
 
   raw_mat <- as.matrix(SummarizedExperiment::assay(se, assay_name))
+  
+  # Safely convert to numeric, ensuring invalid or empty texts become NA
+  if (!is.numeric(raw_mat)) {
+    # Replace empty strings, spaces, or text NAs with actual NA before coercion to avoid unexpected warnings
+    raw_mat[raw_mat == "" | raw_mat == "NA" | raw_mat == "NaN"] <- NA
+    storage.mode(raw_mat) <- "numeric"
+  }
+  
   log2_mat <- log2(raw_mat)
   log2_mat[is.infinite(log2_mat)] <- NA
   rownames(raw_mat) <- NULL
