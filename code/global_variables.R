@@ -1,23 +1,23 @@
 # Global Variables ####
 
 # Setting threshold for p-value and Fold-Change
-p_val <- 0.05
-p_val_low <- 0.01
-FC <- 0.5
+params$p_val <- 0.05
+params$p_val_low <- 0.01
+params$FC <- 0.5
 
 # Global variables
-tiff_extension <- ".tiff"
-pdf_extension <- ".pdf" # Vectorial format
+params$tiff_extension <- ".tiff"
+params$pdf_extension <- ".pdf" # Vectorial format
 # kegg_organism = "dre"#dre for Danio rerio, hsa for Homo sapiens, mmu for Mus musculus
 # species <- 7955 #9606 for Human, 10090 for mouse, 7955 for zebrafish
 # organism <- "org.Dr.eg.db" #"org.Hs.eg.db"
-keyType <- "UNIPROT"
-KEGGkeyType <- "uniprot"
+params$keyType <- "UNIPROT"
+params$KEGGkeyType <- "uniprot"
 
 # Color by condition
 # Generate 4 colors from the Set2 palette
 # Set number of color on basis of number of conditions
-my_colors <- setNames(RColorBrewer::brewer.pal(4, "Set2"), c("CTRL", "CTRL_K", "MDD", "MDD_K"))
+params$my_colors <- setNames(RColorBrewer::brewer.pal(4, "Set2"), c("CTRL", "CTRL_K", "MDD", "MDD_K"))
 
 # Creat directories to store data
 create_directories <- function(base_path) {
@@ -48,7 +48,7 @@ create_directories <- function(base_path) {
   create_dir_if_not_exists(file.path(base_path, "figures", "panther"))
   create_dir_if_not_exists(file.path(base_path, "figures", "rbioapi"))
 }
-create_directories(output_path)
+create_directories(params$output_path)
 
 
 # add prefix lfq_ to LFQ imputed columns

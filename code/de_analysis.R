@@ -339,7 +339,7 @@ export_de_tables <- function(results, comparisons, output_path, adjusted_method)
 #'   significant_qval_data, significant_holmval_data, and one <comparison>_df
 #'   per comparison into .GlobalEnv (matching data_analysis()'s contract)
 run_de_analysis <- function(se, comparisons, output_path,
-                            alpha = p_val, lfc = FC,
+                            alpha = params$p_val, lfc = params$FC,
                             adjusted_method = c("BH", "BY", "bonferroni", "holm", "fdr", "none")) {
   adjusted_method <- match.arg(adjusted_method)
   create_directories(output_path)
